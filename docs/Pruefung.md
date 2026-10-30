@@ -31,3 +31,9 @@ Mit den vorhandenen Kopplungsdaten einmal Status sowie Ein/Aus, Lautstärke, Stu
 ## Ergänzung Philips TV 1.0.1
 
 Syntax, Repository-Struktur, SDK-Fixture und nachgebildeter cURL-Transport erneut geprüft. Neue Fälle unterscheiden cURL 6, 7, 28, 35, 60, 52, 56 und unbekannte Codes; HTTP-Anmeldefehler und HTML statt JSON bleiben getrennt. Fehlertexte und Debug-Metadaten enthalten weder Fixture-Benutzernamen noch Fixture-Passwort. Test für dauerhaft gespeicherten Schaltfehler trotz nachfolgend erfolgreicher Statusabfrage sowie für Diagnoseanzeige beim Wiederöffnen und Aktualisieren des Formulars bestanden. HTTP-Empfang wird nicht als beobachtete Ausführung ausgegeben. Keine Befehle an einen echten TV gesendet; konkreter Nutzerfehler noch nicht reproduziert.
+
+## Ergänzung Philips TV 1.1.0
+
+PIN-Kopplung mit nachgebildetem TV: erste Anfrage ohne bestehende Anmeldedaten, read/write/control-Berechtigungen, Digest-Grant mit neuem Geräteschlüssel, HMAC über Zeitstempel und PIN einschließlich führender Null, Speicherung erst nach bestätigtem Grant, Schutz bestehender Zugangsdaten bei Fehlern, Ablauf und Adresswechsel, Wiederaufnahme der Abfragen, Synchronisation maskierter Formularfelder und Ausschluss von PIN/Schlüsseln aus Debug-/Statusausgaben geprüft. Kopplung am echten TV noch offen.
+
+Shield-Skript gegen den vom Nutzer gelieferten Stand angepasst und isoliert geprüft: neue Power-Aktionsvariable, ausgewählte TV-Instanz, manueller Start ohne Schalten, gleicher Zustand ohne Wiederholungen, Netzwerk-/Zeitstempelfehler ohne Schalten, unveränderter Cache bei fehlgeschlagenem Aktionsaufruf und Wiederverwendung vorhandener Ereignis-/Cache-IDs.

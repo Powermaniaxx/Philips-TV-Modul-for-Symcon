@@ -1,8 +1,10 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/PairingSupport.php';
 
 class PhilipsTV extends IPSModuleStrict
 {
+    use PhilipsTVPairingSupport;
     private const KEYS = ['Home', 'Back', 'Find', 'Options', 'Source', 'Info', 'WatchTV',
         'CursorUp', 'CursorDown', 'CursorLeft', 'CursorRight', 'Confirm',
         'PlayPause', 'Play', 'Pause', 'Stop', 'Rewind', 'FastForward',
@@ -13,6 +15,7 @@ class PhilipsTV extends IPSModuleStrict
     public function Create(): void
     {
         parent::Create();
+        $this->CreatePairing();
         $this->RegisterPropertyBoolean('Enabled', false);
         $this->RegisterPropertyString('Host', '');
         $this->RegisterPropertyString('Username', '');
@@ -70,6 +73,7 @@ class PhilipsTV extends IPSModuleStrict
         $this->SetValue('LastError', $code === 104 ? 'Deaktiviert.' : ($code === 102 ? 'Noch keine aktuelle Abfrage.' : 'Konfiguration prüfen.'));
         $this->Publish();
         if ($code === 102) { $this->SetTimerInterval('Poll', 1000); }
+        $this->MaintainPairing();
     }
 
     public function MessageSink(int $TimeStamp, int $SenderID, int $Message, array $Data): void
@@ -98,23 +102,31 @@ class PhilipsTV extends IPSModuleStrict
         return [
             'ConnectionDiagnostic' => 'Verbindungsdiagnose: ' . ($this->GetValue('LastError') ?: 'Kein aktueller Fehler gemeldet.'),
             'TransportDiagnostic' => 'Letzte HTTPS-Anfrage: ' . ($this->GetValue('TransportInfo') ?: 'Noch keine Anfrage protokolliert.'),
-            'CommandDiagnostic' => 'Letzter Schaltversuch: ' . ($this->GetValue('LastCommand') ?: 'Noch kein Schaltversuch protokolliert.')
+            'CommandDiagnostic' => 'Letzter Schaltversuch: ' . ($this->GetValue('LastCommand') ?: 'Noch kein Schaltversuch protokolliert.'),
+            'PairingDiagnostic' => 'TV-Kopplung: ' . ($this->GetValue('PairingStatus') ?: 'Vorhandene Zugangsdaten verwenden oder Kopplung starten.')
         ];
     }
 
     private function ConfigurationStatus(): int
     {
         if (!$this->ReadPropertyBoolean('Enabled')) { return 104; }
+        $connection = $this->ConnectionConfigurationStatus();
+        if ($connection !== 102) { return $connection; }
+        if ($this->ReadPropertyString('Username') === '' || $this->ReadPropertyString('Password') === '') { return 200; }
+        return 102;
+    }
+
+    private function ConnectionConfigurationStatus(): int
+    {
         $host = trim($this->ReadPropertyString('Host'));
         if ($host === '' || (filter_var($host, FILTER_VALIDATE_IP) === false
             && !preg_match('/^(?=.{1,253}$)[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/iD', $host))
-            || $this->ReadPropertyString('Username') === '' || $this->ReadPropertyString('Password') === ''
             || $this->ReadPropertyInteger('Port') < 1 || $this->ReadPropertyInteger('Port') > 65535) { return 200; }
         return function_exists('curl_init') ? 102 : 203;
     }
 
     /** One bounded request, no redirects, no command retries, no credentials in diagnostics. */
-    protected function Api(string $method, string $endpoint, ?array $body = null): array
+    protected function Api(string $method, string $endpoint, ?array $body = null, ?array $credentials = null): array
     {
         $host = trim($this->ReadPropertyString('Host'));
         if (str_contains($host, ':')) { $host = '[' . $host . ']'; }
@@ -122,13 +134,18 @@ class PhilipsTV extends IPSModuleStrict
         $curl = curl_init($url);
         if ($curl === false) { throw new RuntimeException('TV-Verbindung konnte nicht gestartet werden.'); }
         $timeout = max(500, min(10000, $this->ReadPropertyInteger('Timeout')));
-        curl_setopt_array($curl, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_HTTPAUTH => CURLAUTH_DIGEST, CURLOPT_USERNAME => $this->ReadPropertyString('Username'),
-            CURLOPT_PASSWORD => $this->ReadPropertyString('Password'), CURLOPT_CONNECTTIMEOUT_MS => $timeout,
+        $credentials ??= ['username' => $this->ReadPropertyString('Username'), 'password' => $this->ReadPropertyString('Password')];
+        $options = [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => false, CURLOPT_CONNECTTIMEOUT_MS => $timeout,
             CURLOPT_TIMEOUT_MS => $timeout, CURLOPT_SSL_VERIFYPEER => $this->ReadPropertyBoolean('VerifyTLS'),
             CURLOPT_SSL_VERIFYHOST => $this->ReadPropertyBoolean('VerifyTLS') ? 2 : 0,
             CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json'],
-            CURLOPT_CUSTOMREQUEST => $method]);
+            CURLOPT_CUSTOMREQUEST => $method];
+        if (($credentials['username'] ?? '') !== '' && ($credentials['password'] ?? '') !== '') {
+            $options[CURLOPT_HTTPAUTH] = CURLAUTH_DIGEST;
+            $options[CURLOPT_USERNAME] = $credentials['username'];
+            $options[CURLOPT_PASSWORD] = $credentials['password'];
+        }
+        curl_setopt_array($curl, $options);
         if ($body !== null) { curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($body, JSON_THROW_ON_ERROR)); }
         try {
             $started = microtime(true);
@@ -221,6 +238,7 @@ class PhilipsTV extends IPSModuleStrict
     private function PollStatus(): void
     {
         $this->SetTimerInterval('Poll', 0);
+        if ($this->PairingPending()) { return; }
         if ($this->ConfigurationStatus() !== 102) { $this->SetValue('Online', false); $this->Publish(); return; }
         $generation = $this->ReadAttributeString('Generation');
         $s = ['caps' => [], 'volume' => null, 'mute' => null, 'ambilight' => null, 'ambilightMode' => '', 'activity' => ''];
@@ -294,6 +312,7 @@ class PhilipsTV extends IPSModuleStrict
 
     public function RequestAction(string $Ident, mixed $Value): void
     {
+        if ($this->PairingPending()) { throw new RuntimeException('Bitte zuerst die laufende TV-Kopplung abschließen.'); }
         if ($this->ConfigurationStatus() !== 102) { throw new RuntimeException('Philips-TV-Verbindung zuerst konfigurieren und aktivieren.'); }
         if ($Ident === 'Refresh') {
             if ($Value !== true) { throw new InvalidArgumentException('Aktualisieren erwartet true.'); }

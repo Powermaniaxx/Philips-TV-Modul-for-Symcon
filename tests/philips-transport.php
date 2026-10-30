@@ -23,7 +23,7 @@ class IPSModuleStrict
     protected function SendDebug(string $name,string $data,int $format): void { $this->debug[]=[$name,$data]; }
 }
 require __DIR__.'/../PhilipsTV/module.php';
-class TransportFixture extends PhilipsTV { public function request(string $method,string $endpoint,?array $body=null): array { return $this->Api($method,$endpoint,$body); } }
+class TransportFixture extends PhilipsTV { public function request(string $method,string $endpoint,?array $body=null,?array $credentials=null): array { return $this->Api($method,$endpoint,$body,$credentials); } }
 function check(bool $v,string $m): void { if(!$v)throw new RuntimeException($m); }
 function failure(callable $fn,int $code): void { try{$fn();}catch(RuntimeException $e){check($e->getCode()===$code,'Error classification');check(!str_contains($e->getMessage(),'fixture-secret'),'No secret in errors');return;}throw new RuntimeException('Expected failure'); }
 $m=new TransportFixture();$response='{"powerstate":"On"}';
@@ -58,4 +58,9 @@ check(!str_contains(json_encode($m->debug),'fixture-secret')&&!str_contains(json
 $response='<html>fixture-secret</html>';$httpStatus=200;$errno=0;
 try{$m->request('GET','powerstate');throw new LogicException('Expected malformed body failure');}
 catch(RuntimeException $e){check(str_contains($e->getMessage(),'HTML statt JSON')&&!str_contains($e->getMessage(),'fixture-secret'),'Classify invalid response without leaking body');}
+$response='{"error_id":"SUCCESS"}';$m->request('POST','pair/request',['device'=>['id'=>'new-device']],[]);
+check(!isset($options[CURLOPT_HTTPAUTH],$options[CURLOPT_USERNAME],$options[CURLOPT_PASSWORD]),'Pair request sends no existing credentials');
+$m->request('POST','pair/grant',['auth'=>['pin'=>'0123']],['username'=>'new-device','password'=>'new-temporary-key']);
+check($options[CURLOPT_USERNAME]==='new-device'&&$options[CURLOPT_PASSWORD]==='new-temporary-key','Grant uses new temporary credentials only');
+check(!str_contains(json_encode($m->debug),'new-temporary-key')&&!str_contains(json_encode($m->debug),'0123'),'Pairing debug excludes secret and PIN');
 echo "Philips transport: HTTPS/Digest, JSON, TLS, limits, no redirects, auth errors and redacted diagnostics passed.\n";

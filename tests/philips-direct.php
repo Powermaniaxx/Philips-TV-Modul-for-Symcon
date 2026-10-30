@@ -54,7 +54,7 @@ class TVFixture extends PhilipsTV
             'ambilight/power' => ['power' => 'On'], 'ambilight/currentconfiguration' => ['styleName' => 'FOLLOW_VIDEO']];
         $this->ApplyChanges();
     }
-    protected function Api(string $method, string $endpoint, ?array $body = null): array
+    protected function Api(string $method, string $endpoint, ?array $body = null, ?array $credentials = null): array
     {
         $this->calls[] = [$method, $endpoint, $body];
         if ($this->onRead && $method === 'GET') { ($this->onRead)($endpoint); }

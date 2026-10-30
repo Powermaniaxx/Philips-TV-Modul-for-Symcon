@@ -74,6 +74,30 @@
   "actions": [
     {
       "type": "Label",
+      "caption": "Neue Kopplung: TV einschalten, IP-Adresse speichern, Kopplung starten und PIN vom TV bestätigen. Bestehende Zugangsdaten können weiterverwendet werden."
+    },
+    {
+      "type": "Button",
+      "caption": "Kopplung starten (PIN am TV anzeigen)",
+      "onClick": "SVPTV_StartPairing($id);"
+    },
+    {
+      "type": "PasswordTextBox",
+      "name": "PairingPIN",
+      "caption": "PIN vom Fernseher (wird nicht gespeichert)"
+    },
+    {
+      "type": "Button",
+      "caption": "TV-PIN bestätigen und Zugangsdaten speichern",
+      "onClick": "SVPTV_CompletePairing($id, $PairingPIN);"
+    },
+    {
+      "type": "Label",
+      "name": "PairingDiagnostic",
+      "caption": "TV-Kopplung: Noch keine Kopplung gestartet."
+    },
+    {
+      "type": "Label",
       "name": "ConnectionDiagnostic",
       "caption": "Verbindungsdiagnose: Noch keine Anfrage protokolliert."
     },
