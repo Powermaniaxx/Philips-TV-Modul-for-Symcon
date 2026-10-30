@@ -1,6 +1,6 @@
 # Philips TV direkt in IP-Symcon 9.0
 
-Das separate Repository [Philips-TV-Modul-for-Symcon](https://github.com/Powermaniaxx/Philips-TV-Modul-for-Symcon) enthält das **eigenständige Modul „Philips TV (JointSpace direkt)“ v1.0.0**. Die Verbindung zur Haussteuerung ist ab [Hausstatus 0.132](https://github.com/Powermaniaxx/Symcon-Hausstatus) verfügbar. Jede TV-Instanz verwaltet ihre eigene Verbindung und ihre eigenen Statusvariablen. Die Hausstatus-Kachel verwendet deren Status und Aktionen. Es werden keine Kopplungsdaten im Repository gespeichert.
+Das separate Repository [Philips-TV-Modul-for-Symcon](https://github.com/Powermaniaxx/Philips-TV-Modul-for-Symcon) enthält das **eigenständige Modul „Philips TV (JointSpace direkt)“ v1.0.1**. Die Verbindung zur Haussteuerung ist ab [Hausstatus 0.132](https://github.com/Powermaniaxx/Symcon-Hausstatus) verfügbar. Jede TV-Instanz verwaltet ihre eigene Verbindung und ihre eigenen Statusvariablen. Die Hausstatus-Kachel verwendet deren Status und Aktionen. Es werden keine Kopplungsdaten im Repository gespeichert.
 
 ## Einrichten
 
@@ -54,3 +54,9 @@ Modultests im Philips-Repository: `tests/philips-direct.php`, `tests/philips-tra
 Zusätzlich Browserprüfung mit 320/390 Pixeln Hochformat, 844 Pixeln Querformat und Desktop: kein horizontaler Überlauf, Touch-Bedienelemente, Fernbedienung auf-/zuklappen und korrekte Befehlsziele. Der Live-Test auf dem Fernseher und in Symcon steht noch aus.
 
 Technische Referenzen: [Symcon PHP-Module](https://www.symcon.de/de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/module/) und [JointSpace-Implementierung von ha-philipsjs](https://github.com/danielperna84/ha-philipsjs/blob/master/haphilipsjs/__init__.py).
+
+## Diagnose ab v1.0.1
+
+Die Konfiguration zeigt Verbindungsdiagnose, HTTP-/cURL-Code und Laufzeit der letzten HTTPS-Anfrage sowie das dauerhaft gespeicherte Ergebnis des letzten Schaltversuchs. Unter der Instanz stehen dazu die Variablen `TransportInfo` und `LastCommand`. Statusabfragen löschen den letzten Befehlsfehler nicht mehr aus dieser separaten Anzeige. Keine Antwortinhalte, Anmeldedaten oder Authorization-Header werden protokolliert.
+
+Nach einem Update die Konfiguration neu öffnen. Für die Prüfung den TV einschalten und zuerst **Status aktualisieren / Verbindung prüfen**, danach bei Bedarf **Home-Menü am eingeschalteten TV testen** verwenden. Bei bisher 2000 ms kann ein erster Test mit **Zeitlimit 5000 ms** helfen. Gespeicherte Einstellungen werden beim Update nicht automatisch geändert. Das Update verbessert die Diagnose; der konkrete Verbindungsfehler am Gerät ist dadurch noch nicht behoben.

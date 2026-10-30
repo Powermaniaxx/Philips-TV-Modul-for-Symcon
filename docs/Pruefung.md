@@ -27,3 +27,7 @@ Die folgenden Fehler wurden gegen separat gespeicherte Originaldateien des obige
 ## Noch am Gerät prüfen
 
 Mit den vorhandenen Kopplungsdaten einmal Status sowie Ein/Aus, Lautstärke, Stumm, Ambilight und Fernbedienung testen. Erreichbarkeit nach längerem Standby prüfen. Angezeigte App-/Eingangsdaten und die vom konkreten Modell angebotenen Teilfunktionen bestätigen. Der Transporttest prüft Request-Optionen und Fehlerbehandlung, keine reale TLS-Verbindung zum Fernseher.
+
+## Ergänzung Philips TV 1.0.1
+
+Syntax, Repository-Struktur, SDK-Fixture und nachgebildeter cURL-Transport erneut geprüft. Neue Fälle unterscheiden cURL 6, 7, 28, 35, 60, 52, 56 und unbekannte Codes; HTTP-Anmeldefehler und HTML statt JSON bleiben getrennt. Fehlertexte und Debug-Metadaten enthalten weder Fixture-Benutzernamen noch Fixture-Passwort. Test für dauerhaft gespeicherten Schaltfehler trotz nachfolgend erfolgreicher Statusabfrage sowie für Diagnoseanzeige beim Wiederöffnen und Aktualisieren des Formulars bestanden. HTTP-Empfang wird nicht als beobachtete Ausführung ausgegeben. Keine Befehle an einen echten TV gesendet; konkreter Nutzerfehler noch nicht reproduziert.

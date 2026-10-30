@@ -9,7 +9,7 @@ function IPS_VariableExists(int $id): bool { return $id === 99; }
 class IPSModuleStrict
 {
     public int $InstanceID = 456;
-    public array $props = [], $attrs = [], $values = [], $actions = [], $timers = [], $subscriptions = [];
+    public array $props = [], $attrs = [], $values = [], $actions = [], $timers = [], $subscriptions = [], $formFields = [];
     public int $status = 0;
     public function Create(): void {}
     public function ApplyChanges(): void {}
@@ -37,6 +37,7 @@ class IPSModuleStrict
     protected function DisableAction(string $n): void { $this->actions[$n] = false; }
     protected function RegisterMessage(int $id, int $msg): void { $this->subscriptions[$id] = $msg; }
     protected function UnregisterMessage(int $id, int $msg): void { unset($this->subscriptions[$id]); }
+    protected function UpdateFormField(string $name, string $field, mixed $value): void { $this->formFields[$name][$field] = $value; }
 }
 require __DIR__ . '/../PhilipsTV/module.php';
 class TVFixture extends PhilipsTV
@@ -107,4 +108,17 @@ $m->onRead=null; $m->fail['powerstate']=new RuntimeException('Connection timeout
 rejects(fn()=>$m->RequestAction('Power',false)); check(count($m->calls)===1 && !$GLOBALS['locks']['SVPTVCommand456'],'No replay on timeout and command lock released');
 $m->props['Enabled']=false; $m->ApplyChanges(); $before=count($m->calls); rejects(fn()=>$m->RequestAction('Power',true)); check(count($m->calls)===$before && $m->timers['Poll']===0 && !$m->state()['enabled'],'Disabled connection sends nothing');
 $m->props['Enabled']=true; $m->props['Host']='https://user:pass@tv.local/path'; $m->ApplyChanges();check($m->status===200,'Reject host strings containing URLs/credentials');
+$m=new TVFixture();$m->UpdateStatus();
+$m->fail['powerstate']=new RuntimeException('TLS-Verbindungsaufbau fehlgeschlagen. [POST /6/powerstate · HTTP 0 · cURL 35]',201);
+rejects(fn()=>$m->RequestAction('Power',false));
+$command=$m->values['LastCommand'];
+check(str_contains($command,'Power · POST /6/powerstate · Fehlgeschlagen: TLS-'),'Command failure is recorded independently');
+unset($m->fail['powerstate']);$m->UpdateStatus();
+check($m->values['LastError']===''&&$m->values['LastCommand']===$command,'Successful status poll cannot erase last command failure');
+$form=json_decode($m->GetConfigurationForm(),true);$labels=array_column($form['actions'],'caption','name');
+check(str_contains($labels['CommandDiagnostic'],'cURL 35'),'Command error visible when configuration is reopened');
+check(str_contains($m->formFields['CommandDiagnostic']['caption'],'cURL 35'),'Live form receives diagnostic updates');
+check($m->state()['lastCommand']===$command,'Saved command result included in read-only status');
+$m->RequestAction('RemoteKey','Home');
+check(str_contains($m->values['LastCommand'],'RemoteKey · POST /6/input/key · TV hat den Empfang bestätigt; Ausführung noch nicht bestätigt.'),'HTTP acceptance is distinguished from observed execution');
 echo "Philips direct: status, commands, bounds, auth/errors, capabilities, standby/wake, staleness and in-flight command priority passed.\n";

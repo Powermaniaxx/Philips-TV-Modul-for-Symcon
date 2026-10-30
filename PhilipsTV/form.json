@@ -59,7 +59,7 @@
       "name": "Timeout",
       "caption": "Zeitlimit je Anfrage (Millisekunden)",
       "minimum": 500,
-      "maximum": 5000
+      "maximum": 10000
     },
     {
       "type": "CheckBox",
@@ -73,9 +73,29 @@
   ],
   "actions": [
     {
+      "type": "Label",
+      "name": "ConnectionDiagnostic",
+      "caption": "Verbindungsdiagnose: Noch keine Anfrage protokolliert."
+    },
+    {
+      "type": "Label",
+      "name": "TransportDiagnostic",
+      "caption": "Letzte HTTPS-Anfrage: Noch keine Anfrage protokolliert."
+    },
+    {
+      "type": "Label",
+      "name": "CommandDiagnostic",
+      "caption": "Letzter Schaltversuch: Noch kein Schaltversuch protokolliert."
+    },
+    {
       "type": "Button",
       "caption": "Status aktualisieren / Verbindung prüfen",
       "onClick": "SVPTV_UpdateStatus($id);"
+    },
+    {
+      "type": "Button",
+      "caption": "Home-Menü am eingeschalteten TV testen",
+      "onClick": "IPS_RequestAction($id, 'RemoteKey', 'Home');"
     }
   ],
   "status": [

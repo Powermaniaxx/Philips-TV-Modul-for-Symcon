@@ -1,6 +1,6 @@
 # Philips TV für IP-Symcon
 
-Eigenständiges Philips-TV-Modul **v1.0.0 für IP-Symcon 9.0 oder neuer**, mit direkter JointSpace-Verbindung über HTTPS/API 6 und Digest-Anmeldung. Keine laufende Python- oder Node-RED-Verbindung erforderlich. Vorhandene Kopplungsdaten können weiterverwendet werden.
+Eigenständiges Philips-TV-Modul **v1.0.1 für IP-Symcon 9.0 oder neuer**, mit direkter JointSpace-Verbindung über HTTPS/API 6 und Digest-Anmeldung. Keine laufende Python- oder Node-RED-Verbindung erforderlich. Vorhandene Kopplungsdaten können weiterverwendet werden.
 
 ## Installation
 
@@ -28,6 +28,14 @@ Nach bestätigtem Standby pausieren Abfragen standardmäßig. Ein Ein-Befehl, ma
 Benutzername und Passwort bleiben in der lokalen Symcon-Konfiguration. Die bereits erzeugten API-Zugangsdaten werden benötigt; die TV-PIN dient nicht als Kennwort. Für dieses Modul wird keine erneute Kopplung ausgelöst.
 
 [Vollständige Einrichtung, Variablen und Skriptbefehle](docs/Einrichtung.md) · [Prüfstand und noch ausstehender Live-Test](docs/Pruefung.md)
+
+## Diagnose bei Verbindungs- oder Schaltproblemen
+
+Ab v1.0.1 stehen **Verbindungsdiagnose**, **letzte HTTPS-Anfrage** und **letzter Schaltversuch** direkt im Konfigurationsformular. Die Meldung nennt beispielsweise einen Timeout (cURL 28), eine abgewiesene Verbindung (cURL 7), einen TLS-Fehler (cURL 35/60), einen HTTP-Anmeldefehler (401/403) oder eine ungültige TV-Antwort. Zugangsdaten und Antwortinhalte werden dabei nicht ausgegeben.
+
+Nach einem Update die Instanzkonfiguration neu öffnen. Bei laufendem TV **Status aktualisieren / Verbindung prüfen** drücken. Ein eigenständiger Testknopf öffnet auf Wunsch das **Home-Menü** am TV, ohne die Hausstatus-Kachel zu verwenden. Das letzte Schaltergebnis bleibt auch nach erfolgreichen Statusabfragen erhalten. Ein bestätigter HTTP-Empfang ist noch keine bestätigte Ausführung am Gerät.
+
+Neue Instanzen verwenden 5000 ms Zeitlimit pro Anfrage. Bereits gespeicherte Zeitlimits bleiben erhalten; für einen ersten Test lässt sich der Wert unter **Zeitlimit je Anfrage** auf 5000 ms setzen. Die Kopplung muss dafür nicht erneuert werden. Ein Live-Test am betroffenen TV ist weiterhin erforderlich.
 
 ## Entwicklung
 

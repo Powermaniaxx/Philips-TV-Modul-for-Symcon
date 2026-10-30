@@ -4,19 +4,23 @@ declare(strict_types=1);
 foreach (['CURLOPT_RETURNTRANSFER','CURLOPT_FOLLOWLOCATION','CURLOPT_HTTPAUTH','CURLAUTH_DIGEST','CURLOPT_USERNAME','CURLOPT_PASSWORD',
     'CURLOPT_CONNECTTIMEOUT_MS','CURLOPT_TIMEOUT_MS','CURLOPT_SSL_VERIFYPEER','CURLOPT_SSL_VERIFYHOST','CURLOPT_HTTPHEADER','CURLOPT_CUSTOMREQUEST',
     'CURLOPT_POSTFIELDS','CURLINFO_HTTP_CODE'] as $i=>$name) { define($name, $i+1); }
-$options=[];$response='{}';$httpStatus=200;$url='';
+$options=[];$response='{}';$httpStatus=200;$url='';$errno=0;
 function curl_init(string $url): object { $GLOBALS['url']=$url; return (object)[]; }
 function curl_setopt_array(object $h,array $options): void { $GLOBALS['options']=$options; }
 function curl_setopt(object $h,int $option,mixed $value): void { $GLOBALS['options'][$option]=$value; }
 function curl_exec(object $h): string|false { return $GLOBALS['response']; }
 function curl_getinfo(object $h,int $option): int { return $GLOBALS['httpStatus']; }
 function curl_close(object $h): void {}
+function curl_errno(object $h): int { return $GLOBALS['errno']; }
 class IPSModuleStrict
 {
     public array $props=['Host'=>'tv.local','Port'=>1926,'Username'=>'fixture-user','Password'=>'fixture-secret','Timeout'=>2000,'VerifyTLS'=>false];
+    public array $values=[], $debug=[];
     protected function ReadPropertyString(string $n): string { return $this->props[$n]; }
     protected function ReadPropertyInteger(string $n): int { return $this->props[$n]; }
     protected function ReadPropertyBoolean(string $n): bool { return $this->props[$n]; }
+    protected function SetValue(string $n,mixed $value): void { $this->values[$n]=$value; }
+    protected function SendDebug(string $name,string $data,int $format): void { $this->debug[]=[$name,$data]; }
 }
 require __DIR__.'/../PhilipsTV/module.php';
 class TransportFixture extends PhilipsTV { public function request(string $method,string $endpoint,?array $body=null): array { return $this->Api($method,$endpoint,$body); } }
@@ -39,4 +43,19 @@ $httpStatus=302;failure(fn()=>$m->request('GET','powerstate'),302);
 $httpStatus=0;$response=false;failure(fn()=>$m->request('POST','powerstate',['powerstate'=>'On']),201);
 $httpStatus=200;$response='{}';$m->props['VerifyTLS']=true;$m->props['Host']='2001:db8::1';$m->request('GET','powerstate');
 check($url==='https://[2001:db8::1]:1926/6/powerstate'&&$options[CURLOPT_SSL_VERIFYHOST]===2&&$options[CURLOPT_SSL_VERIFYPEER]===true,'IPv6 and optional TLS verification');
+$response=false;$httpStatus=0;
+foreach([6=>'Hostname',7=>'TV-Port',28=>'Zeitüberschreitung',35=>'TLS-Verbindungsaufbau',60=>'TLS-Zertifikat',52=>'ohne HTTP-Antwort',56=>'abgebrochen',99=>'HTTPS-Anfrage'] as $number=>$expected){
+    $errno=$number;
+    try{$m->request('POST','powerstate',['powerstate'=>'On']);throw new LogicException('Expected failure');}
+    catch(RuntimeException $e){
+        check(str_contains($e->getMessage(),$expected),'Distinguish transport failure '.$number);
+        check(str_contains($e->getMessage(),'POST /6/powerstate · HTTP 0 · cURL '.$number),'Method, endpoint, HTTP and cURL error retained');
+        check(!str_contains($e->getMessage(),'fixture-secret')&&!str_contains($e->getMessage(),'fixture-user'),'No credentials in transport error');
+    }
+}
+check(str_contains($m->values['TransportInfo'],'cURL 99'),'Last transport details saved');
+check(!str_contains(json_encode($m->debug),'fixture-secret')&&!str_contains(json_encode($m->debug),'fixture-user'),'Debug contains metadata only');
+$response='<html>fixture-secret</html>';$httpStatus=200;$errno=0;
+try{$m->request('GET','powerstate');throw new LogicException('Expected malformed body failure');}
+catch(RuntimeException $e){check(str_contains($e->getMessage(),'HTML statt JSON')&&!str_contains($e->getMessage(),'fixture-secret'),'Classify invalid response without leaking body');}
 echo "Philips transport: HTTPS/Digest, JSON, TLS, limits, no redirects, auth errors and redacted diagnostics passed.\n";

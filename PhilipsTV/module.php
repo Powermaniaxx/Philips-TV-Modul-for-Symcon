@@ -21,7 +21,7 @@ class PhilipsTV extends IPSModuleStrict
         $this->RegisterPropertyInteger('PollInterval', 15);
         $this->RegisterPropertyInteger('StandbyInterval', 0);
         $this->RegisterPropertyInteger('WakeSignal', 0);
-        $this->RegisterPropertyInteger('Timeout', 2000);
+        $this->RegisterPropertyInteger('Timeout', 5000);
         $this->RegisterPropertyBoolean('VerifyTLS', false);
         $this->RegisterAttributeString('Snapshot', '{}');
         $this->RegisterAttributeString('Unsupported', '[]');
@@ -39,6 +39,8 @@ class PhilipsTV extends IPSModuleStrict
         $this->RegisterVariableInteger('Updated', 'Letzte Statusabfrage', '~UnixTimestamp', 90);
         $this->RegisterVariableString('LastError', 'Diagnose', '', 100);
         $this->RegisterVariableString('State', 'TV-Status für Haussteuerung', '', 110);
+        $this->RegisterVariableString('TransportInfo', 'Letzte HTTPS-Anfrage', '', 120);
+        $this->RegisterVariableString('LastCommand', 'Letzter Schaltversuch', '', 130);
         $this->RegisterTimer('Poll', 0, 'SVPTV_UpdateStatus($_IPS["TARGET"]);');
     }
 
@@ -79,6 +81,27 @@ class PhilipsTV extends IPSModuleStrict
         }
     }
 
+    public function GetConfigurationForm(): string
+    {
+        $form = json_decode((string)file_get_contents(__DIR__ . '/form.json'), true, 32, JSON_THROW_ON_ERROR);
+        $captions = $this->DiagnosticCaptions();
+        foreach ($form['actions'] as &$action) {
+            $name = $action['name'] ?? '';
+            if (isset($captions[$name])) { $action['caption'] = $captions[$name]; }
+        }
+        unset($action);
+        return json_encode($form, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE);
+    }
+
+    private function DiagnosticCaptions(): array
+    {
+        return [
+            'ConnectionDiagnostic' => 'Verbindungsdiagnose: ' . ($this->GetValue('LastError') ?: 'Kein aktueller Fehler gemeldet.'),
+            'TransportDiagnostic' => 'Letzte HTTPS-Anfrage: ' . ($this->GetValue('TransportInfo') ?: 'Noch keine Anfrage protokolliert.'),
+            'CommandDiagnostic' => 'Letzter Schaltversuch: ' . ($this->GetValue('LastCommand') ?: 'Noch kein Schaltversuch protokolliert.')
+        ];
+    }
+
     private function ConfigurationStatus(): int
     {
         if (!$this->ReadPropertyBoolean('Enabled')) { return 104; }
@@ -98,7 +121,7 @@ class PhilipsTV extends IPSModuleStrict
         $url = 'https://' . $host . ':' . $this->ReadPropertyInteger('Port') . '/6/' . $endpoint;
         $curl = curl_init($url);
         if ($curl === false) { throw new RuntimeException('TV-Verbindung konnte nicht gestartet werden.'); }
-        $timeout = max(500, min(5000, $this->ReadPropertyInteger('Timeout')));
+        $timeout = max(500, min(10000, $this->ReadPropertyInteger('Timeout')));
         curl_setopt_array($curl, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_HTTPAUTH => CURLAUTH_DIGEST, CURLOPT_USERNAME => $this->ReadPropertyString('Username'),
             CURLOPT_PASSWORD => $this->ReadPropertyString('Password'), CURLOPT_CONNECTTIMEOUT_MS => $timeout,
@@ -108,15 +131,37 @@ class PhilipsTV extends IPSModuleStrict
             CURLOPT_CUSTOMREQUEST => $method]);
         if ($body !== null) { curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($body, JSON_THROW_ON_ERROR)); }
         try {
+            $started = microtime(true);
             $raw = curl_exec($curl);
             $status = (int)curl_getinfo($curl, CURLINFO_HTTP_CODE);
-            if ($raw === false) { throw new RuntimeException('TV nicht erreichbar (Verbindung/Zeitlimit).', 201); }
-            if ($status === 401 || $status === 403) { throw new RuntimeException('TV-Anmeldung fehlgeschlagen. Kopplungsdaten prüfen.', 202); }
+            $errno = curl_errno($curl);
+            $info = $method . ' /6/' . $endpoint . ' · HTTP ' . $status . ' · cURL ' . $errno . ' · '
+                . (int)round((microtime(true) - $started) * 1000) . ' ms';
+            $this->SetValue('TransportInfo', $info);
+            // Log only fixed metadata, never curl_error(), headers, bodies or credentials.
+            $this->SendDebug('TV-Transport', $info, 0);
+            if ($raw === false) {
+                $reason = match ($errno) {
+                    5, 6 => 'Hostname konnte nicht aufgelöst werden.',
+                    7 => 'Verbindung zum TV-Port konnte nicht hergestellt werden.',
+                    28 => 'Zeitüberschreitung nach maximal ' . $timeout . ' ms.',
+                    35 => 'TLS-Verbindungsaufbau fehlgeschlagen.',
+                    51, 60 => 'TLS-Zertifikat des Fernsehers konnte nicht bestätigt werden.',
+                    52 => 'TV hat die Verbindung ohne HTTP-Antwort geschlossen.',
+                    55, 56 => 'TV-Verbindung beim Senden oder Empfangen abgebrochen.',
+                    default => 'HTTPS-Anfrage fehlgeschlagen.'
+                };
+                throw new RuntimeException($reason . ' [' . $info . ']', 201);
+            }
+            if ($status === 401 || $status === 403) { throw new RuntimeException('TV-Anmeldung fehlgeschlagen (HTTP ' . $status . '). Kopplungsdaten prüfen.', 202); }
             if ($status < 200 || $status >= 300) { throw new RuntimeException('TV-API ' . $endpoint . ': HTTP ' . $status, $status); }
             // Some firmware acknowledges POST with empty text or an HTML "Ok" page.
             if ($method === 'POST' && (trim($raw) === '' || preg_match('/^\s*<html>.*\bOk\b.*<\/html>\s*$/is', $raw))) { return []; }
             $data = json_decode($raw, true);
-            if (!is_array($data)) { throw new RuntimeException('TV-API ' . $endpoint . ': ungültige Antwort.', 201); }
+            if (!is_array($data)) {
+                $kind = trim($raw) === '' ? 'leere Antwort' : (str_starts_with(ltrim($raw), '<') ? 'HTML statt JSON' : 'kein gültiges JSON-Objekt');
+                throw new RuntimeException('TV-API ' . $endpoint . ': ' . $kind . ' (HTTP ' . $status . ').', 201);
+            }
             if (isset($data['error']) || (isset($data['error_id']) && $data['error_id'] !== 'SUCCESS')) {
                 throw new RuntimeException('TV-API ' . $endpoint . ': Befehl abgewiesen.', 201);
             }
@@ -143,6 +188,7 @@ class PhilipsTV extends IPSModuleStrict
         $s['stale'] = $stale;
         $s['enabled'] = $enabled;
         $s['error'] = $this->GetValue('LastError');
+        $s['lastCommand'] = $this->GetValue('LastCommand');
         if (!$enabled || $stale || (!$s['online'] && !$paused)) {
             $s['power'] = 'unknown'; $s['caps'] = [];
             $s['volume'] = null; $s['mute'] = null; $s['activity'] = ''; $s['ambilight'] = null; $s['ambilightMode'] = '';
@@ -156,6 +202,7 @@ class PhilipsTV extends IPSModuleStrict
     {
         $state = $this->GetState();
         $this->SetValue('State', $state);
+        foreach ($this->DiagnosticCaptions() as $name => $caption) { $this->UpdateFormField($name, 'caption', $caption); }
         $s = json_decode($state, true, 32, JSON_THROW_ON_ERROR);
         foreach (['Volume' => 'audio', 'Mute' => 'audio', 'Ambilight' => 'ambilight'] as $ident => $cap) {
             if ($s['online'] && $s['power'] === 'awake' && ($s['caps'][$cap] ?? false)) { $this->EnableAction($ident); }
@@ -255,6 +302,7 @@ class PhilipsTV extends IPSModuleStrict
         }
         $lock = 'SVPTVCommand' . $this->InstanceID;
         if (!IPS_SemaphoreEnter($lock, 100)) { throw new RuntimeException('TV-Befehl läuft bereits.'); }
+        $attempt = null;
         try {
             $body = []; $endpoint = '';
             $s = json_decode($this->GetState(), true, 32, JSON_THROW_ON_ERROR);
@@ -285,7 +333,10 @@ class PhilipsTV extends IPSModuleStrict
             }
             $this->WriteAttributeString('Generation', bin2hex(random_bytes(8)));
             // No status GET before the command and no automatic replay on a timeout.
+            $attempt = date('c') . ' · ' . $Ident . ' · POST /6/' . $endpoint;
+            $this->SetValue('LastCommand', $attempt . ' · Versand läuft.');
             $this->Api('POST', $endpoint, $body);
+            $this->SetValue('LastCommand', $attempt . ' · TV hat den Empfang bestätigt; Ausführung noch nicht bestätigt.');
             if ($endpoint === 'audio/volume') {
                 // Preserve the other half of the last accepted audio command during rapid commands.
                 // Displayed volume/mute remain last observed until the independent confirmation GET.
@@ -297,6 +348,7 @@ class PhilipsTV extends IPSModuleStrict
             $this->SetValue('LastError', 'Befehl gesendet; Statusbestätigung folgt.');
             $this->SetTimerInterval('Poll', 700);
         } catch (Throwable $e) {
+            if ($attempt !== null) { $this->SetValue('LastCommand', $attempt . ' · Fehlgeschlagen: ' . $e->getMessage()); }
             $this->SetValue('LastError', $e->getMessage());
             $this->SetTimerInterval('Poll', 1000);
             throw $e;
