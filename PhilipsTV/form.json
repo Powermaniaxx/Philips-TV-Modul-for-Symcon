@@ -1,0 +1,113 @@
+{
+  "elements": [
+    {
+      "type": "Label",
+      "caption": "Philips TV – direkte JointSpace-Verbindung (API 6, HTTPS/Digest)"
+    },
+    {
+      "type": "CheckBox",
+      "name": "Enabled",
+      "caption": "Verbindung aktivieren"
+    },
+    {
+      "type": "ValidationTextBox",
+      "name": "Host",
+      "caption": "IP-Adresse oder Hostname des Fernsehers (ohne https://)"
+    },
+    {
+      "type": "ValidationTextBox",
+      "name": "Username",
+      "caption": "Benutzername der bestehenden Kopplung"
+    },
+    {
+      "type": "PasswordTextBox",
+      "name": "Password",
+      "caption": "Passwort der bestehenden Kopplung"
+    },
+    {
+      "type": "NumberSpinner",
+      "name": "Port",
+      "caption": "HTTPS-Port (Standard 1926)",
+      "minimum": 1,
+      "maximum": 65535
+    },
+    {
+      "type": "NumberSpinner",
+      "name": "PollInterval",
+      "caption": "Statusabfrage bei eingeschaltetem TV (Sekunden)",
+      "minimum": 5,
+      "maximum": 300
+    },
+    {
+      "type": "NumberSpinner",
+      "name": "StandbyInterval",
+      "caption": "Statusabfrage im Standby (Sekunden, 0 = pausieren)",
+      "minimum": 0,
+      "maximum": 3600
+    },
+    {
+      "type": "SelectVariable",
+      "name": "WakeSignal",
+      "caption": "Optional: Shield-Betriebszustand zum Fortsetzen der Abfragen"
+    },
+    {
+      "type": "Label",
+      "caption": "Bei 0 pausieren Abfragen nach bestätigtem Standby. Ein-Befehl, Status aktualisieren oder das Wake-Signal (true / awake / on) starten sie wieder. Bei Einschalten mit der Fernbedienung ohne Wake-Signal einmal aktualisieren oder Standby-Abfragen aktivieren."
+    },
+    {
+      "type": "NumberSpinner",
+      "name": "Timeout",
+      "caption": "Zeitlimit je Anfrage (Millisekunden)",
+      "minimum": 500,
+      "maximum": 5000
+    },
+    {
+      "type": "CheckBox",
+      "name": "VerifyTLS",
+      "caption": "TLS-Zertifikat prüfen (Philips verwendet meist ein selbstsigniertes Zertifikat)"
+    },
+    {
+      "type": "Label",
+      "caption": "Zugangsdaten bleiben in der lokalen Symcon-Konfiguration. Kein Python und kein Node-RED für diese Verbindung nötig. Für die Anzeige in der Haussteuerung zusätzlich Hausstatus ab 0.132 installieren und dort unter Wohnzimmer diese Philips-TV-Instanz auswählen."
+    }
+  ],
+  "actions": [
+    {
+      "type": "Button",
+      "caption": "Status aktualisieren / Verbindung prüfen",
+      "onClick": "SVPTV_UpdateStatus($id);"
+    }
+  ],
+  "status": [
+    {
+      "code": 102,
+      "icon": "active",
+      "caption": "Verbindung aktiv"
+    },
+    {
+      "code": 104,
+      "icon": "inactive",
+      "caption": "Deaktiviert"
+    },
+    {
+      "code": 200,
+      "icon": "error",
+      "caption": "IP-Adresse und Kopplungsdaten prüfen"
+    },
+    {
+      "code": 201,
+      "icon": "error",
+      "caption": "TV nicht erreichbar oder Antwort ungültig"
+    },
+    {
+      "code": 202,
+      "icon": "error",
+      "caption": "Anmeldung fehlgeschlagen – Kopplungsdaten prüfen"
+    },
+    {
+      "code": 203,
+      "icon": "error",
+      "caption": "PHP-cURL fehlt"
+    }
+  ]
+}

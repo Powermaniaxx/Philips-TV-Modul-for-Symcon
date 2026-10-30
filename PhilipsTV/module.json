@@ -1,0 +1,14 @@
+{
+  "id": "{7A9BA592-5E11-4F37-B9D0-740BC1C61C19}",
+  "name": "PhilipsTV",
+  "type": 3,
+  "vendor": "Philips",
+  "aliases": [
+    "Philips TV (JointSpace direkt)"
+  ],
+  "url": "https://github.com/Powermaniaxx/Philips-TV-Modul-for-Symcon",
+  "parentRequirements": [],
+  "childRequirements": [],
+  "implemented": [],
+  "prefix": "SVPTV"
+}

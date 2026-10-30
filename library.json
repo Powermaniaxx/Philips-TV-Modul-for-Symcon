@@ -1,0 +1,12 @@
+{
+  "id": "{7D6B782C-D5E0-44A8-B5AD-808ED9F85FF1}",
+  "author": "Sven",
+  "name": "Philips TV",
+  "url": "https://github.com/Powermaniaxx/Philips-TV-Modul-for-Symcon",
+  "compatibility": {
+    "version": "9.0"
+  },
+  "version": "1.0.0",
+  "build": 1,
+  "date": 1793367945
+}
