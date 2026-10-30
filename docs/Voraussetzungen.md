@@ -2,7 +2,7 @@
 
 ## Geltungsbereich
 
-Dieses Modul stellt eine Philips-JointSpace-Anbindung bereit. **Es ist kein markenübergreifendes Android-TV-Modul.** Der Name „Philips TV“ bleibt deshalb bestehen. Samsung, LG, Sony und andere Marken werden durch diese Bibliothek derzeit nicht unterstützt. Ein beliebiges Gerät mit Android TV oder Google TV ist dadurch noch nicht kompatibel.
+Dieses Modul stellt eine Philips-JointSpace-Anbindung bereit. **Es ist kein markenübergreifendes Android-TV-Modul.** Der Name „Philips TV Steuerung (JointSpace)“ benennt deshalb Marke, Zweck und Schnittstelle. Samsung, LG, Sony und andere Marken werden durch diese Bibliothek derzeit nicht unterstützt. Ein beliebiges Gerät mit Android TV oder Google TV ist dadurch noch nicht kompatibel.
 
 Entscheidend ist die tatsächlich angebotene TV-Schnittstelle: **JointSpace API 6 über HTTPS mit Digest-Anmeldung**. Der Modulcode verwendet fest den Pfad `/6/` und das Philips-PIN-Kopplungsverfahren. Ein anderer Port macht daraus weder eine andere API-Version noch eine unverschlüsselte HTTP-Verbindung.
 

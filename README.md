@@ -1,10 +1,10 @@
-# Philips TV für IP-Symcon
+# Philips TV Steuerung (JointSpace) für IP-Symcon
 
-Eigenständiges Philips-TV-Modul **v1.1.1 für IP-Symcon 9.0 oder neuer**, mit direkter JointSpace-Verbindung über HTTPS/API 6 und Digest-Anmeldung. Keine laufende Python- oder Node-RED-Verbindung erforderlich. Vorhandene Kopplungsdaten können weiterverwendet werden.
+Eigenständiges Philips-TV-Modul **v1.1.2 für IP-Symcon 9.0 oder neuer**, mit direkter JointSpace-Verbindung über HTTPS/API 6 und Digest-Anmeldung. Keine laufende Python- oder Node-RED-Verbindung erforderlich. Vorhandene Kopplungsdaten können weiterverwendet werden.
 
 ## Voraussetzungen und Gerätekompatibilität
 
-**Dieses Modul ist eine Philips-JointSpace-Anbindung und derzeit nicht markenübergreifend.** Der Name „Philips TV“ bleibt bestehen. Android TV oder Google TV allein ist kein Kompatibilitätsnachweis; auch nicht jeder Philips-TV ist abgedeckt.
+**Dieses Modul ist eine Philips-JointSpace-Anbindung und derzeit nicht markenübergreifend.** Die Bezeichnung bleibt deshalb Philips-spezifisch. Android TV oder Google TV allein ist kein Kompatibilitätsnachweis; auch nicht jeder Philips-TV ist abgedeckt.
 
 Benötigt werden IP-Symcon ab 9.0, PHP-cURL, eine erreichbare TV-Adresse und **JointSpace API 6 über HTTPS mit Digest-Anmeldung** (Standardport 1926). Die API-Version und das Kopplungsverfahren müssen zum konkreten TV passen. Ausschließlich HTTP oder andere JointSpace-Versionen unterstützt dieses Modul aktuell nicht.
 
@@ -18,7 +18,7 @@ Einschalten aus Standby ist nur möglich, wenn die TV-API erreichbar bleibt und 
 
    `https://github.com/Powermaniaxx/Philips-TV-Modul-for-Symcon`
 
-2. Eine Instanz **Philips TV (JointSpace direkt)** erstellen.
+2. Eine Instanz **Philips TV Steuerung (JointSpace)** erstellen.
 3. IP-Adresse eintragen und Änderungen übernehmen. Den Fernseher mit seiner Fernbedienung einschalten.
 4. Im Aktionsbereich **Kopplung starten (PIN am TV anzeigen)** drücken, die angezeigte TV-PIN eingeben und **TV-PIN bestätigen und Zugangsdaten speichern** drücken. Das Modul speichert die erzeugten Zugangsdaten und aktiviert die Verbindung automatisch.
 5. **Status aktualisieren / Verbindung prüfen** drücken. Alternativ können vorhandene API-Zugangsdaten weiterhin von Hand eingetragen werden.

@@ -1,13 +1,13 @@
 # Philips TV direkt in IP-Symcon 9.0
 
-Das separate Repository [Philips-TV-Modul-for-Symcon](https://github.com/Powermaniaxx/Philips-TV-Modul-for-Symcon) enthält das **eigenständige Modul „Philips TV (JointSpace direkt)“ v1.1.1**. Die Verbindung zur Haussteuerung ist ab [Hausstatus 0.132](https://github.com/Powermaniaxx/Symcon-Hausstatus) verfügbar. Jede TV-Instanz verwaltet ihre eigene Verbindung und ihre eigenen Statusvariablen. Die Hausstatus-Kachel verwendet deren Status und Aktionen. Es werden keine Kopplungsdaten im Repository gespeichert.
+Das separate Repository [Philips-TV-Modul-for-Symcon](https://github.com/Powermaniaxx/Philips-TV-Modul-for-Symcon) enthält das **eigenständige Modul „Philips TV Steuerung (JointSpace)“ v1.1.2**. Die Verbindung zur Haussteuerung ist ab [Hausstatus 0.132](https://github.com/Powermaniaxx/Symcon-Hausstatus) verfügbar. Jede TV-Instanz verwaltet ihre eigene Verbindung und ihre eigenen Statusvariablen. Die Hausstatus-Kachel verwendet deren Status und Aktionen. Es werden keine Kopplungsdaten im Repository gespeichert.
 
 Vor der Einrichtung die [Voraussetzungen, Gerätekompatibilität und Grenzen](Voraussetzungen.md) prüfen. Das Modul ist für die dort beschriebene Philips-Schnittstelle vorgesehen; eine markenübergreifende Unterstützung besteht nicht.
 
 ## Einrichten
 
 1. In Symcon unter **Modul Control → Hinzufügen** das separate Repository `https://github.com/Powermaniaxx/Philips-TV-Modul-for-Symcon` hinzufügen. Für die Hausstatus-Kachel zusätzlich die Bibliothek **Symcon-Hausstatus auf 0.132 oder neuer** aktualisieren. Die Philips-Bibliothek lässt sich auch ohne Hausstatus verwenden.
-2. In Symcon eine Instanz **Philips TV (JointSpace direkt)** erstellen.
+2. In Symcon eine Instanz **Philips TV Steuerung (JointSpace)** erstellen.
 3. IP-Adresse eintragen und Änderungen übernehmen. Im Aktionsbereich **Kopplung starten** drücken, die PIN vom TV eingeben und **TV-PIN bestätigen und Zugangsdaten speichern** drücken. Das Modul erzeugt und speichert Benutzername und Passwort selbst. Alternativ vorhandene API-Kopplungsdaten eintragen; diese bleiben bei einer fehlgeschlagenen neuen Kopplung unverändert.
 4. Verbindung aktivieren, Änderungen übernehmen und **Status aktualisieren / Verbindung prüfen** drücken. Der TV sollte beim ersten Test eingeschaltet sein.
 5. In der zentralen Hausstatus-Instanz unter **Wohnzimmer: Cinema 40, HEOS, Shield und Philips-TV** die neue **Direkte Philips-TV-Instanz** auswählen. „Philips TV anzeigen und bedienen“ aktivieren und Änderungen übernehmen. Abgeleitete Kacheln verwenden die Auswahl ihrer Konfigurationsquelle.

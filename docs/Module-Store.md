@@ -2,7 +2,7 @@
 
 ## Name
 
-Philips TV (JointSpace)
+Philips TV Steuerung (JointSpace)
 
 ## Bundle-ID
 

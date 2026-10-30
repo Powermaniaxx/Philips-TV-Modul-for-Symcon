@@ -2,7 +2,7 @@
   "elements": [
     {
       "type": "Label",
-      "caption": "Philips TV – direkte JointSpace-Verbindung (API 6, HTTPS/Digest)"
+      "caption": "Philips TV Steuerung – JointSpace API 6 (HTTPS/Digest)"
     },
     {
       "type": "CheckBox",
