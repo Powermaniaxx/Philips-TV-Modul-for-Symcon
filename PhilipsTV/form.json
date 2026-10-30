@@ -48,11 +48,11 @@
     {
       "type": "SelectVariable",
       "name": "WakeSignal",
-      "caption": "Optional: Shield-Betriebszustand zum Fortsetzen der Abfragen"
+      "caption": "Optionales Aktivierungssignal"
     },
     {
       "type": "Label",
-      "caption": "Bei 0 pausieren Abfragen nach bestätigtem Standby. Ein-Befehl, Status aktualisieren oder das Wake-Signal (true / awake / on) starten sie wieder. Bei Einschalten mit der Fernbedienung ohne Wake-Signal einmal aktualisieren oder Standby-Abfragen aktivieren."
+      "caption": "Bei Standby-Intervall 0 pausieren die Abfragen. Optional kann z. B. eine AVR-, Shield- oder eigene Statusvariable sie bei einem Wechsel auf aktiv fortsetzen (true, Ganzzahl 1, on oder awake). Ohne Auswahl ist kein Signal nötig. Das Signal sendet keinen Einschaltbefehl an den TV. Alternativ manuell aktualisieren oder Standby-Abfragen aktivieren."
     },
     {
       "type": "NumberSpinner",

@@ -1,6 +1,16 @@
 # Philips TV für IP-Symcon
 
-Eigenständiges Philips-TV-Modul **v1.1.0 für IP-Symcon 9.0 oder neuer**, mit direkter JointSpace-Verbindung über HTTPS/API 6 und Digest-Anmeldung. Keine laufende Python- oder Node-RED-Verbindung erforderlich. Vorhandene Kopplungsdaten können weiterverwendet werden.
+Eigenständiges Philips-TV-Modul **v1.1.1 für IP-Symcon 9.0 oder neuer**, mit direkter JointSpace-Verbindung über HTTPS/API 6 und Digest-Anmeldung. Keine laufende Python- oder Node-RED-Verbindung erforderlich. Vorhandene Kopplungsdaten können weiterverwendet werden.
+
+## Voraussetzungen und Gerätekompatibilität
+
+**Dieses Modul ist eine Philips-JointSpace-Anbindung und derzeit nicht markenübergreifend.** Der Name „Philips TV“ bleibt bestehen. Android TV oder Google TV allein ist kein Kompatibilitätsnachweis; auch nicht jeder Philips-TV ist abgedeckt.
+
+Benötigt werden IP-Symcon ab 9.0, PHP-cURL, eine erreichbare TV-Adresse und **JointSpace API 6 über HTTPS mit Digest-Anmeldung** (Standardport 1926). Die API-Version und das Kopplungsverfahren müssen zum konkreten TV passen. Ausschließlich HTTP oder andere JointSpace-Versionen unterstützt dieses Modul aktuell nicht.
+
+Einschalten aus Standby ist nur möglich, wenn die TV-API erreichbar bleibt und den Befehl unterstützt. Wake-on-LAN ist nicht enthalten. Lautstärke, aktive Anwendung und Ambilight sind modell- und firmwareabhängig. Eine vollständige Liste freigegebener Modelle liegt noch nicht vor.
+
+**Vor der Installation lesen: [Voraussetzungen, unterstützte Geräte und Grenzen](docs/Voraussetzungen.md).**
 
 ## Installation
 
@@ -22,13 +32,13 @@ Das Modul funktioniert unabhängig von der Haussteuerung. Für Anzeige und Bedie
 - Betriebszustand, aktive Anwendung bzw. Eingangs-URI und Ambilight-Modus.
 - Fernbedienung über Instanzaktionen und in der Hausstatus-Kachel.
 - Unmittelbarer Befehlsversand und getrennte Statusbestätigung.
-- Konfigurierbare Abfragen, Standby-Pause und optionales Wake-Signal vom Shield-Betriebszustand.
+- Konfigurierbare Abfragen, Standby-Pause und optionales Aktivierungssignal, z. B. vom AVR, von einer Shield oder einer eigenen Statusvariable.
 
-Nach bestätigtem Standby pausieren Abfragen standardmäßig. Ein Ein-Befehl, manuelles Aktualisieren oder ein passendes Wake-Signal startet sie wieder. Wer mit der TV-Fernbedienung einschaltet, kann alternativ Standby-Abfragen aktivieren. Einschalten per API setzt voraus, dass der TV im Standby über das Netzwerk erreichbar bleibt.
+Nach bestätigtem Standby pausieren Abfragen standardmäßig. Ein Ein-Befehl, manuelles Aktualisieren oder ein passendes Aktivierungssignal startet sie wieder. Wer mit der TV-Fernbedienung einschaltet, kann alternativ Standby-Abfragen aktivieren. Einschalten per API setzt voraus, dass der TV im Standby über das Netzwerk erreichbar bleibt.
 
 Benutzername und Passwort bleiben in der lokalen Symcon-Konfiguration. Die bereits erzeugten API-Zugangsdaten werden benötigt; die TV-PIN dient nicht als Kennwort. Eine bestehende Kopplung bleibt erhalten, solange nicht ausdrücklich eine neue gestartet und vom TV bestätigt wird. Andere Benutzer können ihren eigenen kompatiblen Philips-TV mit JointSpace API 6 über denselben Ablauf koppeln; es sind keine fest hinterlegten Geräte-IDs oder privaten TV-Zugangsdaten erforderlich.
 
-[Vollständige Einrichtung, Variablen und Skriptbefehle](docs/Einrichtung.md) · [Prüfstand und noch ausstehender Live-Test](docs/Pruefung.md)
+[Einrichtung, Variablen und Skriptbefehle](docs/Einrichtung.md) · [Prüfstand und offene Gerätetests](docs/Pruefung.md) · [Texte für den Module Store](docs/Module-Store.md)
 
 ## Diagnose bei Verbindungs- oder Schaltproblemen
 
@@ -47,8 +57,12 @@ php -n tests/philips-transport.php
 python tests/repository-structure.py
 ```
 
-Der Modultest benötigt die cURL-Erweiterung, verwendet jedoch eine nachgebildete TV-API. Der Transporttest läuft ohne geladene cURL-Erweiterung und bildet deren Funktionen nach. Es werden keine echten TV-Befehle gesendet. Ein Test auf dem konkreten Fernseher und in einer echten Symcon-Installation steht noch aus.
+Der Modultest benötigt die cURL-Erweiterung, verwendet jedoch eine nachgebildete TV-API. Der Transporttest läuft ohne geladene cURL-Erweiterung und bildet deren Funktionen nach. Es werden keine echten TV-Befehle gesendet. Grundlegendes Schalten wurde aus einer realen Installation als funktionierend zurückgemeldet. Die integrierte PIN-Kopplung und weitere Modelle sind noch nicht umfassend live geprüft.
 
 ## Shield mit dem Philips koppeln
 
 Das angepasste [Kopplungsskript](docs/Shield-Philips-TV-Kopplung.php) nutzt die Boolean-Aktionsvariable `Power` der in der Hausstatus-Hauptinstanz ausgewählten Philips-TV-Instanz. Nur der Shield-Zustand löst Ein/Standby aus. Ein manueller Start richtet das Ereignis ein und speichert den Ausgangszustand, ohne den TV zu schalten. [Skript einrichten](docs/Shield-Philips-TV-Kopplung.md). Dieser optionale Helfer benötigt Hausstatus; das TV-Modul selbst funktioniert eigenständig.
+
+## Optionales Aktivierungssignal
+
+Das Feld kann leer bleiben. Ein AVR, eine Shield oder eine eigene Statusvariable kann bei einem Wechsel auf `true`, Ganzzahl `1`, `on` oder `awake` die Statusabfragen fortsetzen. Das Signal schaltet den TV nicht ein und aktiviert kein deaktiviertes Modul. Die gespeicherte Auswahl bleibt bei Updates erhalten.

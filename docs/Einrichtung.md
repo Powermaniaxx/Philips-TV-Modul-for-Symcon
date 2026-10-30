@@ -1,6 +1,8 @@
 # Philips TV direkt in IP-Symcon 9.0
 
-Das separate Repository [Philips-TV-Modul-for-Symcon](https://github.com/Powermaniaxx/Philips-TV-Modul-for-Symcon) enthält das **eigenständige Modul „Philips TV (JointSpace direkt)“ v1.1.0**. Die Verbindung zur Haussteuerung ist ab [Hausstatus 0.132](https://github.com/Powermaniaxx/Symcon-Hausstatus) verfügbar. Jede TV-Instanz verwaltet ihre eigene Verbindung und ihre eigenen Statusvariablen. Die Hausstatus-Kachel verwendet deren Status und Aktionen. Es werden keine Kopplungsdaten im Repository gespeichert.
+Das separate Repository [Philips-TV-Modul-for-Symcon](https://github.com/Powermaniaxx/Philips-TV-Modul-for-Symcon) enthält das **eigenständige Modul „Philips TV (JointSpace direkt)“ v1.1.1**. Die Verbindung zur Haussteuerung ist ab [Hausstatus 0.132](https://github.com/Powermaniaxx/Symcon-Hausstatus) verfügbar. Jede TV-Instanz verwaltet ihre eigene Verbindung und ihre eigenen Statusvariablen. Die Hausstatus-Kachel verwendet deren Status und Aktionen. Es werden keine Kopplungsdaten im Repository gespeichert.
+
+Vor der Einrichtung die [Voraussetzungen, Gerätekompatibilität und Grenzen](Voraussetzungen.md) prüfen. Das Modul ist für die dort beschriebene Philips-Schnittstelle vorgesehen; eine markenübergreifende Unterstützung besteht nicht.
 
 ## Einrichten
 
@@ -23,9 +25,9 @@ Befehle gehen unmittelbar über HTTPS auf Port 1926 an API 6 (Digest-Anmeldung).
 
 ## Standby
 
-Standardmäßig fragt das Modul bei eingeschaltetem TV alle 15 Sekunden ab. Nach **bestätigtem Standby** pausiert es vollständig. Ein Einschaltbefehl oder manuelles Aktualisieren startet die Abfragen wieder. Optional kann die Variable mit dem Shield-Betriebszustand als **Wake-Signal** gewählt werden: ein Wechsel auf `awake`, `on` oder Boolean `true` setzt die Abfragen fort, schaltet den TV aber nicht selbst ein.
+Standardmäßig fragt das Modul bei eingeschaltetem TV alle 15 Sekunden ab. Nach **bestätigtem Standby** pausiert es vollständig. Ein Einschaltbefehl oder manuelles Aktualisieren startet die Abfragen wieder. Unter **Optionales Aktivierungssignal** kann eine passende AVR-, Shield- oder eigene Statusvariable gewählt werden. Die Auswahl darf leer bleiben. Ein Wertwechsel auf Boolean `true`, Ganzzahl `1`, `on` oder `awake` setzt die Abfragen fort. Das Signal schaltet den TV nicht ein und aktiviert kein deaktiviertes Modul.
 
-Wer mit der TV-Fernbedienung einschaltet und kein Wake-Signal verwendet, muss einmal aktualisieren oder ein Standby-Abfrageintervall einstellen. Für die Erkennung während der Pause gibt es bewusst keinen versteckten Hintergrund-Poll. Die Kachel nennt den Zustand dann **„Standby (zuletzt gemeldet)“**, nicht aktuell erreichbar. Ein Fehler wird nicht als bestätigtes Aus interpretiert.
+Wer mit der TV-Fernbedienung einschaltet und kein Aktivierungssignal verwendet, muss einmal aktualisieren oder ein Standby-Abfrageintervall einstellen. Für die Erkennung während der Pause gibt es bewusst keinen versteckten Hintergrund-Poll. Die Kachel nennt den Zustand dann **„Standby (zuletzt gemeldet)“**, nicht aktuell erreichbar. Ein Fehler wird nicht als bestätigtes Aus interpretiert.
 
 Einschalten über die API setzt voraus, dass die TV-Netzwerkschnittstelle im Standby erreichbar bleibt. Ein vom Netz getrennter TV oder ein TV ohne erreichbare API im Tiefschlaf lässt sich damit nicht einschalten. Die konkrete Firmware muss am Gerät geprüft werden; eine automatische HDMI-Umschaltung wird nicht eingerichtet.
 
@@ -51,7 +53,7 @@ IPS_RequestAction($tvInstance, 'RemoteKey', 'Home');
 
 Modultests im Philips-Repository: `tests/philips-direct.php`, `tests/philips-transport.php` und `tests/repository-structure.py`. Tests der Hausstatus-Verbindung im Hausstatus-Repository: `tests/philips-house.php` und `tests/philips-direct.js`. Der Transport-Test läuft **ohne** geladene cURL-Erweiterung, damit er die cURL-Funktionen isoliert nachbilden kann. Der Modultest benötigt cURL. Keine dieser Prüfungen sendet Befehle an einen echten TV.
 
-Zusätzlich Browserprüfung mit 320/390 Pixeln Hochformat, 844 Pixeln Querformat und Desktop: kein horizontaler Überlauf, Touch-Bedienelemente, Fernbedienung auf-/zuklappen und korrekte Befehlsziele. Der Live-Test auf dem Fernseher und in Symcon steht noch aus.
+Zusätzlich Browserprüfung mit 320/390 Pixeln Hochformat, 844 Pixeln Querformat und Desktop: kein horizontaler Überlauf, Touch-Bedienelemente, Fernbedienung auf-/zuklappen und korrekte Befehlsziele. Grundlegendes Schalten wurde aus einer realen Installation als funktionierend zurückgemeldet. Für die integrierte PIN-Kopplung und weitere Geräte steht die umfassende Live-Prüfung noch aus.
 
 Technische Referenzen: [Symcon PHP-Module](https://www.symcon.de/de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/module/) und [JointSpace-Implementierung von ha-philipsjs](https://github.com/danielperna84/ha-philipsjs/blob/master/haphilipsjs/__init__.py).
 

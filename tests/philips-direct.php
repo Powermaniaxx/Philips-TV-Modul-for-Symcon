@@ -121,4 +121,18 @@ check(str_contains($m->formFields['CommandDiagnostic']['caption'],'cURL 35'),'Li
 check($m->state()['lastCommand']===$command,'Saved command result included in read-only status');
 $m->RequestAction('RemoteKey','Home');
 check(str_contains($m->values['LastCommand'],'RemoteKey · POST /6/input/key · TV hat den Empfang bestätigt; Ausführung noch nicht bestätigt.'),'HTTP acceptance is distinguished from observed execution');
+$m=new TVFixture();$m->props['WakeSignal']=99;$m->ApplyChanges();$before=count($m->calls);
+foreach([true,1,'ON',' awake '] as $active){
+    $m->timers['Poll']=0;$m->MessageSink(time(),99,VM_UPDATE,[$active,true]);
+    check($m->timers['Poll']===100,'Generic AVR/Shield/own signal resumes status reads');
+}
+foreach([false,0,2,-1,'off','standby','unknown',null] as $inactive){
+    $m->timers['Poll']=0;$m->MessageSink(time(),99,VM_UPDATE,[$inactive,true]);
+    check($m->timers['Poll']===0,'Inactive or unknown signal never resumes polling');
+}
+$m->MessageSink(time(),99,VM_UPDATE,[true,false]);check($m->timers['Poll']===0,'Unchanged signal is ignored');
+$m->MessageSink(time(),98,VM_UPDATE,[true,true]);check($m->timers['Poll']===0,'Only selected source can resume polling');
+$m->props['WakeSignal']=0;$m->MessageSink(time(),0,VM_UPDATE,[true,true]);check($m->timers['Poll']===0,'Unconfigured optional signal does nothing');
+$m->props['WakeSignal']=99;$m->props['Enabled']=false;$m->MessageSink(time(),99,VM_UPDATE,[true,true]);check($m->timers['Poll']===0,'Signal cannot activate disabled module');
+check(count($m->calls)===$before,'Optional activation signal sends no TV power command or immediate network request');
 echo "Philips direct: status, commands, bounds, auth/errors, capabilities, standby/wake, staleness and in-flight command priority passed.\n";

@@ -78,9 +78,10 @@ class PhilipsTV extends IPSModuleStrict
 
     public function MessageSink(int $TimeStamp, int $SenderID, int $Message, array $Data): void
     {
-        if ($Message !== VM_UPDATE || $SenderID !== $this->ReadPropertyInteger('WakeSignal') || !($Data[1] ?? false)) { return; }
+        $signalID = $this->ReadPropertyInteger('WakeSignal');
+        if ($signalID <= 0 || $Message !== VM_UPDATE || $SenderID !== $signalID || !($Data[1] ?? false)) { return; }
         $value = $Data[0] ?? null;
-        if ($value === true || (is_string($value) && in_array(strtolower($value), ['awake', 'on'], true))) {
+        if ($value === true || $value === 1 || (is_string($value) && in_array(strtolower(trim($value)), ['awake', 'on'], true))) {
             if ($this->ConfigurationStatus() === 102) { $this->SetTimerInterval('Poll', 100); }
         }
     }

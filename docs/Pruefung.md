@@ -37,3 +37,7 @@ Syntax, Repository-Struktur, SDK-Fixture und nachgebildeter cURL-Transport erneu
 PIN-Kopplung mit nachgebildetem TV: erste Anfrage ohne bestehende Anmeldedaten, read/write/control-Berechtigungen, Digest-Grant mit neuem Geräteschlüssel, HMAC über Zeitstempel und PIN einschließlich führender Null, Speicherung erst nach bestätigtem Grant, Schutz bestehender Zugangsdaten bei Fehlern, Ablauf und Adresswechsel, Wiederaufnahme der Abfragen, Synchronisation maskierter Formularfelder und Ausschluss von PIN/Schlüsseln aus Debug-/Statusausgaben geprüft. Kopplung am echten TV noch offen.
 
 Shield-Skript gegen den vom Nutzer gelieferten Stand angepasst und isoliert geprüft: neue Power-Aktionsvariable, ausgewählte TV-Instanz, manueller Start ohne Schalten, gleicher Zustand ohne Wiederholungen, Netzwerk-/Zeitstempelfehler ohne Schalten, unveränderter Cache bei fehlgeschlagenem Aktionsaufruf und Wiederverwendung vorhandener Ereignis-/Cache-IDs.
+
+## Ergänzung Philips TV 1.1.1
+
+Das optionale Aktivierungssignal ist allgemein für AVR, Shield oder eigene Statusvariablen beschriftet. Tests decken `true`, Ganzzahl `1`, Groß-/Kleinschreibung und Leerzeichen bei `on`/`awake` sowie inaktive, unbekannte, unveränderte, fremde und nicht konfigurierte Signale ab. Das Signal setzt ausschließlich den Abfragetimer und versendet keinen TV-Einschaltbefehl. Dokumentation enthält Voraussetzungen, fehlende markenübergreifende Unterstützung und einen neutralen Module-Store-Text. Öffentliche Kopplungsvorlagen enthalten keine persönlichen Objekt-IDs; Tests verwenden fiktive Kennungen.
