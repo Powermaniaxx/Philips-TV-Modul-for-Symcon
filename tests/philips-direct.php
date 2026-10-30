@@ -3,6 +3,10 @@ declare(strict_types=1);
 // SDK and TV fixtures: never contact a real device.
 const VM_UPDATE = 10603;
 $locks = [];
+$signalValues = [99 => false];
+$signalUpdated = null;
+function GetValue(int $id): mixed { return $GLOBALS['signalValues'][$id] ?? null; }
+function IPS_GetVariable(int $id): array { return ['VariableUpdated'=>$GLOBALS['signalUpdated'] ?? time()]; }
 function IPS_SemaphoreEnter(string $key, int $timeout): bool { if ($GLOBALS['locks'][$key] ?? false) { return false; } $GLOBALS['locks'][$key] = true; return true; }
 function IPS_SemaphoreLeave(string $key): void { $GLOBALS['locks'][$key] = false; }
 function IPS_VariableExists(int $id): bool { return $id === 99; }
@@ -37,6 +41,7 @@ class IPSModuleStrict
     protected function DisableAction(string $n): void { $this->actions[$n] = false; }
     protected function RegisterMessage(int $id, int $msg): void { $this->subscriptions[$id] = $msg; }
     protected function UnregisterMessage(int $id, int $msg): void { unset($this->subscriptions[$id]); }
+    protected function SendDebug(mixed ...$args): void {}
     protected function UpdateFormField(string $name, string $field, mixed $value): void { $this->formFields[$name][$field] = $value; }
 }
 require __DIR__ . '/../PhilipsTV/module.php';

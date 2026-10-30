@@ -24,6 +24,8 @@ class PhilipsTV extends IPSModuleStrict
         $this->RegisterPropertyInteger('PollInterval', 15);
         $this->RegisterPropertyInteger('StandbyInterval', 0);
         $this->RegisterPropertyInteger('WakeSignal', 0);
+        $this->RegisterPropertyBoolean('SignalPowerOn', false);
+        $this->RegisterPropertyBoolean('SignalPowerOff', false);
         $this->RegisterPropertyInteger('Timeout', 5000);
         $this->RegisterPropertyBoolean('VerifyTLS', false);
         $this->RegisterAttributeString('Snapshot', '{}');
@@ -31,6 +33,8 @@ class PhilipsTV extends IPSModuleStrict
         $this->RegisterAttributeString('Generation', '');
         $this->RegisterAttributeString('ConfigurationHash', '');
         $this->RegisterAttributeInteger('WakeSubscription', 0);
+        $this->RegisterAttributeString('SignalState', 'unknown');
+        $this->RegisterAttributeInteger('SignalMessageCounter', -1);
         $this->RegisterVariableBoolean('Online', 'TV erreichbar', '~Switch', 10);
         $this->RegisterVariableBoolean('Power', 'TV einschalten', '~Switch', 20);
         $this->RegisterVariableString('PowerState', 'Bestätigter Betriebszustand', '', 30);
@@ -56,6 +60,14 @@ class PhilipsTV extends IPSModuleStrict
         $wake = $this->ReadPropertyInteger('WakeSignal');
         if ($wake > 0 && IPS_VariableExists($wake)) { $this->RegisterMessage($wake, VM_UPDATE); }
         $this->WriteAttributeInteger('WakeSubscription', $wake);
+        // Establish a baseline only. Enabling an option must never switch the TV.
+        $signalState = 'unknown';
+        if ($wake > 0 && IPS_VariableExists($wake)) {
+            try { $signalState = $this->ReadSignalState($wake); }
+            catch (Throwable $e) { /* A missing source cannot produce a power transition. */ }
+        }
+        $this->WriteAttributeString('SignalState', $signalState);
+        $this->WriteAttributeInteger('SignalMessageCounter', -1);
         $hash = hash('sha256', json_encode([$this->ReadPropertyString('Host'), $this->ReadPropertyInteger('Port'),
             $this->ReadPropertyString('Username'), $this->ReadPropertyString('Password')], JSON_THROW_ON_ERROR));
         if ($hash !== $this->ReadAttributeString('ConfigurationHash')) {
@@ -79,11 +91,53 @@ class PhilipsTV extends IPSModuleStrict
     public function MessageSink(int $TimeStamp, int $SenderID, int $Message, array $Data): void
     {
         $signalID = $this->ReadPropertyInteger('WakeSignal');
-        if ($signalID <= 0 || $Message !== VM_UPDATE || $SenderID !== $signalID || !($Data[1] ?? false)) { return; }
-        $value = $Data[0] ?? null;
-        if ($value === true || $value === 1 || (is_string($value) && in_array(strtolower(trim($value)), ['awake', 'on'], true))) {
-            if ($this->ConfigurationStatus() === 102) { $this->SetTimerInterval('Poll', 100); }
+        if ($signalID <= 0 || !IPS_VariableExists($signalID) || $Message !== VM_UPDATE || $SenderID !== $signalID || !($Data[1] ?? false)) { return; }
+        $previous = $this->ReadAttributeString('SignalState');
+        $current = $this->SignalState($Data[0] ?? null);
+        if ($this->ReadPropertyBoolean('SignalPowerOn') || $this->ReadPropertyBoolean('SignalPowerOff')) {
+            // Symcon's MessageSink timestamp is a sequence counter, not Unix time.
+            if ($TimeStamp <= $this->ReadAttributeInteger('SignalMessageCounter')) { return; }
+            $this->WriteAttributeInteger('SignalMessageCounter', $TimeStamp);
+            // Read the current source to avoid executing an obsolete queued message.
+            try { $current = $this->ReadSignalState($signalID); }
+            catch (Throwable $e) { $current = 'unknown'; }
         }
+        $this->WriteAttributeString('SignalState', $current);
+        if ($current === 'unknown' || $this->ConfigurationStatus() !== 102 || $this->PairingPending()) { return; }
+        if ($current === 'active') { $this->SetTimerInterval('Poll', 100); }
+        // Unknown states break the transition chain. Recovery alone is not a power command.
+        $on = $previous === 'inactive' && $current === 'active' && $this->ReadPropertyBoolean('SignalPowerOn');
+        $off = $previous === 'active' && $current === 'inactive' && $this->ReadPropertyBoolean('SignalPowerOff');
+        if ($on || $off) {
+            try { $this->RequestAction('Power', $on); }
+            catch (Throwable $e) {
+                $this->SetValue('LastError', 'Signal-Schaltbefehl fehlgeschlagen: ' . $e->getMessage());
+                $this->SendDebug('TV-Signal', $this->GetValue('LastError'), 0);
+                $this->Publish();
+            }
+        }
+    }
+
+    private function SignalState(mixed $value): string
+    {
+        if ($value === true || $value === 1) { return 'active'; }
+        if ($value === false || $value === 0) { return 'inactive'; }
+        if (is_string($value)) {
+            return match (strtolower(trim($value))) {
+                'on', 'awake' => 'active',
+                'off', 'standby' => 'inactive',
+                default => 'unknown'
+            };
+        }
+        return 'unknown';
+    }
+
+    private function ReadSignalState(int $id): string
+    {
+        $variable = IPS_GetVariable($id);
+        $updated = (int)($variable['VariableUpdated'] ?? 0);
+        if ($updated <= 0 || time() - $updated > 150 || $updated > time() + 5) { return 'unknown'; }
+        return $this->SignalState(GetValue($id));
     }
 
     public function GetConfigurationForm(): string

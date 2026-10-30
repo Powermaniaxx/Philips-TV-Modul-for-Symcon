@@ -1,6 +1,6 @@
 # Philips TV Steuerung (JointSpace) für IP-Symcon
 
-Eigenständiges Philips-TV-Modul **v1.1.2 für IP-Symcon 9.0 oder neuer**, mit direkter JointSpace-Verbindung über HTTPS/API 6 und Digest-Anmeldung. Keine laufende Python- oder Node-RED-Verbindung erforderlich. Vorhandene Kopplungsdaten können weiterverwendet werden.
+Eigenständiges Philips-TV-Modul **v1.2.0 für IP-Symcon 9.0 oder neuer**, mit direkter JointSpace-Verbindung über HTTPS/API 6 und Digest-Anmeldung. Keine laufende Python- oder Node-RED-Verbindung erforderlich. Vorhandene Kopplungsdaten können weiterverwendet werden.
 
 ## Voraussetzungen und Gerätekompatibilität
 
@@ -32,9 +32,10 @@ Das Modul funktioniert unabhängig von der Haussteuerung. Für Anzeige und Bedie
 - Betriebszustand, aktive Anwendung bzw. Eingangs-URI und Ambilight-Modus.
 - Fernbedienung über Instanzaktionen und in der Hausstatus-Kachel.
 - Unmittelbarer Befehlsversand und getrennte Statusbestätigung.
-- Konfigurierbare Abfragen, Standby-Pause und optionales Aktivierungssignal, z. B. vom AVR, von einer Shield oder einer eigenen Statusvariable.
+- Konfigurierbare Abfragen, Standby-Pause und optionales Steuersignal vom AVR, von einer Shield oder einer eigenen Statusvariable.
+- TV über dieses Signal auf Wunsch einschalten und/oder ausschalten – beide Optionen unabhängig wählbar und standardmäßig aus.
 
-Nach bestätigtem Standby pausieren Abfragen standardmäßig. Ein Ein-Befehl, manuelles Aktualisieren oder ein passendes Aktivierungssignal startet sie wieder. Wer mit der TV-Fernbedienung einschaltet, kann alternativ Standby-Abfragen aktivieren. Einschalten per API setzt voraus, dass der TV im Standby über das Netzwerk erreichbar bleibt.
+Nach bestätigtem Standby pausieren Abfragen standardmäßig. Ein Ein-Befehl, manuelles Aktualisieren oder ein passendes Steuersignal startet sie wieder. Wer mit der TV-Fernbedienung einschaltet, kann alternativ Standby-Abfragen aktivieren. Einschalten per API setzt voraus, dass der TV im Standby über das Netzwerk erreichbar bleibt.
 
 Benutzername und Passwort bleiben in der lokalen Symcon-Konfiguration. Die bereits erzeugten API-Zugangsdaten werden benötigt; die TV-PIN dient nicht als Kennwort. Eine bestehende Kopplung bleibt erhalten, solange nicht ausdrücklich eine neue gestartet und vom TV bestätigt wird. Andere Benutzer können ihren eigenen kompatiblen Philips-TV mit JointSpace API 6 über denselben Ablauf koppeln; es sind keine fest hinterlegten Geräte-IDs oder privaten TV-Zugangsdaten erforderlich.
 
@@ -53,6 +54,7 @@ Neue Instanzen verwenden 5000 ms Zeitlimit pro Anfrage. Bereits gespeicherte Zei
 ```sh
 php tests/philips-direct.php
 php tests/philips-pairing.php
+php tests/philips-signal.php
 php -n tests/philips-transport.php
 python tests/repository-structure.py
 ```
@@ -63,6 +65,13 @@ Der Modultest benötigt die cURL-Erweiterung, verwendet jedoch eine nachgebildet
 
 Das angepasste [Kopplungsskript](docs/Shield-Philips-TV-Kopplung.php) nutzt die Boolean-Aktionsvariable `Power` der in der Hausstatus-Hauptinstanz ausgewählten Philips-TV-Instanz. Nur der Shield-Zustand löst Ein/Standby aus. Ein manueller Start richtet das Ereignis ein und speichert den Ausgangszustand, ohne den TV zu schalten. [Skript einrichten](docs/Shield-Philips-TV-Kopplung.md). Dieser optionale Helfer benötigt Hausstatus; das TV-Modul selbst funktioniert eigenständig.
 
-## Optionales Aktivierungssignal
+## Optionales Steuersignal
 
-Das Feld kann leer bleiben. Ein AVR, eine Shield oder eine eigene Statusvariable kann bei einem Wechsel auf `true`, Ganzzahl `1`, `on` oder `awake` die Statusabfragen fortsetzen. Das Signal schaltet den TV nicht ein und aktiviert kein deaktiviertes Modul. Die gespeicherte Auswahl bleibt bei Updates erhalten.
+Das Feld kann leer bleiben. Als Quelle eignet sich ein bestätigter Betriebszustand vom AVR, von einer Shield oder einer eigenen Statusvariable.
+
+- **TV bei aktivem Signal einschalten:** Beim Wechsel von inaktiv auf aktiv wird ein Ein-Befehl gesendet.
+- **TV bei inaktivem Signal ausschalten (Standby):** Beim Wechsel von aktiv auf inaktiv wird ein Standby-Befehl gesendet.
+
+Beide Schalter sind zunächst aus und unabhängig wählbar. Ohne diese Optionen setzt ein aktives Signal wie bisher nur die Statusabfragen fort. Das Speichern der Einstellungen löst keinen TV-Befehl aus. Als aktiv gelten `true`, Ganzzahl `1`, `on` oder `awake`; als inaktiv `false`, Ganzzahl `0`, `off` oder `standby`. Unbekannte Zustände unterbrechen die Schaltautomatik, bis wieder ein gültiger Zustandswechsel vorliegt. Gleiche normalisierte Zustände wiederholen keinen Befehl.
+
+Für die Schaltautomatik einen echten Betriebszustand auswählen, keine reine Online-/Erreichbarkeitsmeldung: Deren `false` kann einen Verbindungsfehler bedeuten. Ein paralleles Shield/TV-Kopplungsskript für denselben Ein-/Aus-Ablauf sollte nicht zusätzlich aktiv sein, damit Befehle nicht doppelt gesendet werden.

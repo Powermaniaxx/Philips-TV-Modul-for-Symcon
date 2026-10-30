@@ -48,11 +48,21 @@
     {
       "type": "SelectVariable",
       "name": "WakeSignal",
-      "caption": "Optionales Aktivierungssignal"
+      "caption": "Optionales Steuersignal"
+    },
+    {
+      "type": "CheckBox",
+      "name": "SignalPowerOn",
+      "caption": "TV bei aktivem Signal einschalten"
+    },
+    {
+      "type": "CheckBox",
+      "name": "SignalPowerOff",
+      "caption": "TV bei inaktivem Signal ausschalten (Standby)"
     },
     {
       "type": "Label",
-      "caption": "Bei Standby-Intervall 0 pausieren die Abfragen. Optional kann z. B. eine AVR-, Shield- oder eigene Statusvariable sie bei einem Wechsel auf aktiv fortsetzen (true, Ganzzahl 1, on oder awake). Ohne Auswahl ist kein Signal nötig. Das Signal sendet keinen Einschaltbefehl an den TV. Alternativ manuell aktualisieren oder Standby-Abfragen aktivieren."
+      "caption": "Optionaler Betriebszustand, z. B. vom AVR, von einer Shield oder einer eigenen Variable. Aktiv: true, Ganzzahl 1, on oder awake. Inaktiv: false, Ganzzahl 0, off oder standby. Beide Schaltoptionen sind unabhängig und zunächst aus. Ohne Schaltoption setzt ein aktives Signal nur die Abfragen fort. Geschaltet wird erst bei einem anschließenden gültigen Zustandswechsel, nicht beim Übernehmen der Einstellungen. Für die Schaltautomatik einen echten Ein-/Aus-Zustand wählen, keine bloße Online-/Erreichbarkeitsmeldung: ein Verbindungsverlust ist kein bestätigtes Ausschalten. Für denselben Ein-/Aus-Ablauf nicht zusätzlich ein paralleles Kopplungsskript aktivieren."
     },
     {
       "type": "NumberSpinner",

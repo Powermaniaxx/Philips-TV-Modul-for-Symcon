@@ -41,11 +41,15 @@ Ein ausgeschalteter Netzwerkadapter, Tiefschlaf oder ein vom Strom getrenntes Ge
 
 Standardmäßig pausieren die Statusabfragen nach bestätigtem Standby vollständig. Ein Einschaltbefehl aus dem Modul, manuelles Aktualisieren oder ein optionales Aktivierungssignal setzt sie fort. Wer ausschließlich mit der TV-Fernbedienung einschaltet und kein solches Signal verwendet, muss manuell aktualisieren oder ein Standby-Abfrageintervall einstellen.
 
-## Optionales Aktivierungssignal
+## Optionales Steuersignal und Ein-/Aus-Automatik
 
-Die Auswahl darf leer bleiben. Als Quelle eignet sich beispielsweise der Betriebszustand eines AVR, einer Shield oder eine eigene Statusvariable in Symcon. Ein **Wertwechsel auf Boolean `true`, Ganzzahl `1` oder die Zeichenkette `on` bzw. `awake`** setzt die Abfragen fort. Bei diesen Zeichenketten werden Groß-/Kleinschreibung und umgebende Leerzeichen ignoriert.
+Die Auswahl darf leer bleiben. Als Quelle eignet sich beispielsweise der tatsächliche Betriebszustand eines AVR, einer Shield oder eine eigene Statusvariable. Aktiv sind Boolean `true`, Ganzzahl `1` und die Zeichenketten `on`/`awake`; inaktiv sind Boolean `false`, Ganzzahl `0` und `off`/`standby`. Bei diesen Zeichenketten werden Groß-/Kleinschreibung und umgebende Leerzeichen ignoriert.
 
-Das Signal startet nur die Statusabfrage. Es sendet keinen TV-Einschaltbefehl, aktiviert kein deaktiviertes Modul und ersetzt keine erreichbare TV-Schnittstelle. Andere Zahlen, unbekannte Zustände und inaktive Werte lösen keine Wiederaufnahme aus. Für Geräte mit anderen Statuscodierungen kann eine eigene Boolean-Variable das gewünschte Signal abbilden.
+Ohne aktivierte Schaltoption setzt ein Wechsel auf aktiv lediglich die Statusabfragen fort. Zusätzlich gibt es zwei unabhängige, zunächst deaktivierte Optionen: **TV bei aktivem Signal einschalten** und **TV bei inaktivem Signal ausschalten (Standby)**. So sind nur Ein, nur Aus, beides oder keines wählbar. Das Übernehmen der Konfiguration schaltet nicht, sondern liest zunächst den Ausgangszustand ein.
+
+Die Ein-/Aus-Automatik reagiert auf anschließende gültige Wechsel zwischen aktiv und inaktiv. Gleiche normalisierte Werte lösen keine wiederholten Befehle aus. Unbekannte Werte unterbrechen die Folge; die erste gültige Meldung danach schaltet noch nicht. Ein deaktiviertes Modul wird nicht durch das Signal aktiviert. Für Quellen mit anderer Statuscodierung kann eine eigene Boolean-Variable den bestätigten Ein-/Aus-Zustand abbilden.
+
+Für automatisches Schalten keine reine Online-/Erreichbarkeitsvariable verwenden: Deren `false` kann einen Netzwerkfehler anzeigen und ist nicht zwingend ein tatsächlicher Aus-Zustand. Ebenfalls vermeiden, denselben Ein-/Aus-Ablauf parallel durch das zusätzliche Shield-Kopplungsskript auszulösen. Ein Einschaltbefehl ersetzt weder die TV-Netzwerkerreichbarkeit noch Wake-on-LAN.
 
 ## Modellabhängige Grenzen
 

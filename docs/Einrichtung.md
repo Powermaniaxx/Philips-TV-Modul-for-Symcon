@@ -1,6 +1,6 @@
 # Philips TV direkt in IP-Symcon 9.0
 
-Das separate Repository [Philips-TV-Modul-for-Symcon](https://github.com/Powermaniaxx/Philips-TV-Modul-for-Symcon) enthält das **eigenständige Modul „Philips TV Steuerung (JointSpace)“ v1.1.2**. Die Verbindung zur Haussteuerung ist ab [Hausstatus 0.132](https://github.com/Powermaniaxx/Symcon-Hausstatus) verfügbar. Jede TV-Instanz verwaltet ihre eigene Verbindung und ihre eigenen Statusvariablen. Die Hausstatus-Kachel verwendet deren Status und Aktionen. Es werden keine Kopplungsdaten im Repository gespeichert.
+Das separate Repository [Philips-TV-Modul-for-Symcon](https://github.com/Powermaniaxx/Philips-TV-Modul-for-Symcon) enthält das **eigenständige Modul „Philips TV Steuerung (JointSpace)“ v1.2.0**. Die Verbindung zur Haussteuerung ist ab [Hausstatus 0.132](https://github.com/Powermaniaxx/Symcon-Hausstatus) verfügbar. Jede TV-Instanz verwaltet ihre eigene Verbindung und ihre eigenen Statusvariablen. Die Hausstatus-Kachel verwendet deren Status und Aktionen. Es werden keine Kopplungsdaten im Repository gespeichert.
 
 Vor der Einrichtung die [Voraussetzungen, Gerätekompatibilität und Grenzen](Voraussetzungen.md) prüfen. Das Modul ist für die dort beschriebene Philips-Schnittstelle vorgesehen; eine markenübergreifende Unterstützung besteht nicht.
 
@@ -25,9 +25,9 @@ Befehle gehen unmittelbar über HTTPS auf Port 1926 an API 6 (Digest-Anmeldung).
 
 ## Standby
 
-Standardmäßig fragt das Modul bei eingeschaltetem TV alle 15 Sekunden ab. Nach **bestätigtem Standby** pausiert es vollständig. Ein Einschaltbefehl oder manuelles Aktualisieren startet die Abfragen wieder. Unter **Optionales Aktivierungssignal** kann eine passende AVR-, Shield- oder eigene Statusvariable gewählt werden. Die Auswahl darf leer bleiben. Ein Wertwechsel auf Boolean `true`, Ganzzahl `1`, `on` oder `awake` setzt die Abfragen fort. Das Signal schaltet den TV nicht ein und aktiviert kein deaktiviertes Modul.
+Standardmäßig fragt das Modul bei eingeschaltetem TV alle 15 Sekunden ab. Nach **bestätigtem Standby** pausiert es vollständig. Ein Einschaltbefehl oder manuelles Aktualisieren startet die Abfragen wieder. Unter **Optionales Steuersignal** kann eine passende AVR-, Shield- oder eigene Betriebszustandsvariable gewählt werden. Die Auswahl darf leer bleiben. Ohne aktivierte Schaltoption setzt ein Wechsel auf `true`, Ganzzahl `1`, `on` oder `awake` nur die Abfragen fort. Ein deaktiviertes Modul wird nicht durch das Signal aktiviert.
 
-Wer mit der TV-Fernbedienung einschaltet und kein Aktivierungssignal verwendet, muss einmal aktualisieren oder ein Standby-Abfrageintervall einstellen. Für die Erkennung während der Pause gibt es bewusst keinen versteckten Hintergrund-Poll. Die Kachel nennt den Zustand dann **„Standby (zuletzt gemeldet)“**, nicht aktuell erreichbar. Ein Fehler wird nicht als bestätigtes Aus interpretiert.
+Wer mit der TV-Fernbedienung einschaltet und kein Steuersignal verwendet, muss einmal aktualisieren oder ein Standby-Abfrageintervall einstellen. Für die Erkennung während der Pause gibt es bewusst keinen versteckten Hintergrund-Poll. Die Kachel nennt den Zustand dann **„Standby (zuletzt gemeldet)“**, nicht aktuell erreichbar. Ein Fehler wird nicht als bestätigtes Aus interpretiert.
 
 Einschalten über die API setzt voraus, dass die TV-Netzwerkschnittstelle im Standby erreichbar bleibt. Ein vom Netz getrennter TV oder ein TV ohne erreichbare API im Tiefschlaf lässt sich damit nicht einschalten. Die konkrete Firmware muss am Gerät geprüft werden; eine automatische HDMI-Umschaltung wird nicht eingerichtet.
 
@@ -61,10 +61,25 @@ Technische Referenzen: [Symcon PHP-Module](https://www.symcon.de/de/service/doku
 
 Die Konfiguration zeigt Verbindungsdiagnose, HTTP-/cURL-Code und Laufzeit der letzten HTTPS-Anfrage sowie das dauerhaft gespeicherte Ergebnis des letzten Schaltversuchs. Unter der Instanz stehen dazu die Variablen `TransportInfo` und `LastCommand`. Statusabfragen löschen den letzten Befehlsfehler nicht mehr aus dieser separaten Anzeige. Keine Antwortinhalte, Anmeldedaten oder Authorization-Header werden protokolliert.
 
-Nach einem Update die Konfiguration neu öffnen. Für die Prüfung den TV einschalten und zuerst **Status aktualisieren / Verbindung prüfen**, danach bei Bedarf **Home-Menü am eingeschalteten TV testen** verwenden. Bei bisher 2000 ms kann ein erster Test mit **Zeitlimit 5000 ms** helfen. Gespeicherte Einstellungen werden beim Update nicht automatisch geändert. Das Update verbessert die Diagnose; der konkrete Verbindungsfehler am Gerät ist dadurch noch nicht behoben.
+Nach einem Update die Konfiguration neu öffnen. Für die Prüfung den TV einschalten und zuerst **Status aktualisieren / Verbindung prüfen**, danach bei Bedarf **Home-Menü am eingeschalteten TV testen** verwenden. Bei bisher 2000 ms kann ein erster Test mit **Zeitlimit 5000 ms** helfen. Gespeicherte Einstellungen werden beim Update nicht automatisch geändert. Die genaue Meldung zeigt, welcher Verbindungsfehler untersucht werden muss.
 
 ## Integrierte PIN-Kopplung ab v1.1.0
 
 Der Fernseher muss eingeschaltet sein und JointSpace API 6 mit PIN-Kopplung unterstützen. Zuerst die richtige TV-Adresse speichern. Dann die Kopplung starten und die am TV angezeigte PIN innerhalb von 2 Minuten bestätigen. Führende Nullen gehören zur PIN. Die PIN ist ein ungespeichertes Aktionsfeld. Zwischen Anforderung und Bestätigung pausieren die Statusabfragen. Das Modul bestätigt die PIN beim TV und speichert erst nach dessen erfolgreicher Antwort die neue Gerätekennung und den erzeugten API-Schlüssel. Die maskierten Zugangsdatenfelder und der Aktivierungsschalter werden im offenen Formular aktualisiert.
 
 Der PIN-Dialog kann früher vom TV beendet werden. Bei abgelaufener oder abgewiesener Anfrage die Kopplung neu starten. Temporäre Kopplungsdaten werden nach Erfolg, Fehler, Adresswechsel oder Ablauf gelöscht. Zugangsdaten und zeitweilige Kopplungsdaten bleiben in der lokalen Symcon-Konfiguration bzw. deren Sicherungen und werden nicht im Repository oder Debug-Protokoll ausgegeben. Die konkrete Kopplung am Gerät muss nach dem Update noch live geprüft werden.
+
+## Optionale Ein-/Aus-Automatik ab v1.2.0
+
+Unter dem Steuersignal stehen zwei unabhängige Schalter:
+
+- **TV bei aktivem Signal einschalten**
+- **TV bei inaktivem Signal ausschalten (Standby)**
+
+Beide sind standardmäßig aus. Nur Einschalten, nur Ausschalten, beides oder keines ist möglich. Nach Auswahl der Quelle und Übernahme der Einstellungen wird zunächst der aktuelle Quellzustand als Ausgangswert gelesen. Dabei wird nicht geschaltet. Erst ein nachfolgender gültiger Wechsel zwischen aktiv und inaktiv löst die gewählte Aktion aus.
+
+Aktiv sind Boolean `true`, Ganzzahl `1` und die Zeichenketten `on`/`awake`. Inaktiv sind Boolean `false`, Ganzzahl `0` und `off`/`standby`. Bei Zeichenketten werden Groß-/Kleinschreibung und umgebende Leerzeichen ignoriert. Andere Werte sind unbekannt; sie schalten den TV nicht und unterbrechen die Folge bestätigter Übergänge. Die erste gültige Meldung danach bildet nur eine neue Ausgangslage. Für automatisches Schalten muss der tatsächliche Aktualisierungszeitpunkt der Quellvariable gültig und höchstens 150 Sekunden alt sein. Offensichtlich zukünftige oder fehlende Zeitangaben führen zu einem unbekannten Zustand. Veraltete Nachrichtenreihenfolgen werden ignoriert.
+
+Eine reine Online-Variable eignet sich nicht als bestätigter Betriebszustand: Ein Netzwerkfehler kann dort ebenfalls `false` liefern und würde bei aktivierter Ausschaltoption als Aus-Signal verstanden. Die Quelle daher bewusst als tatsächlichen Ein-/Aus-Zustand wählen. Für denselben TV nicht gleichzeitig das zusätzliche Shield-Kopplungsskript und dieselbe Signal-Schaltautomatik verwenden.
+
+Die Schaltautomatik nutzt dieselben ausdrücklichen Power-Befehle wie die manuelle Bedienung. Bei deaktiviertem Modul oder laufender PIN-Kopplung wird nicht automatisch geschaltet; ein fehlgeschlagener Befehl wird nicht stillschweigend wiederholt. Die API-Erreichbarkeit im Standby und die modellabhängigen Grenzen gelten weiterhin.

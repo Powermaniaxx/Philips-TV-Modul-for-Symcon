@@ -41,3 +41,9 @@ Shield-Skript gegen den vom Nutzer gelieferten Stand angepasst und isoliert gepr
 ## Ergänzung Philips TV 1.1.1
 
 Das optionale Aktivierungssignal ist allgemein für AVR, Shield oder eigene Statusvariablen beschriftet. Tests decken `true`, Ganzzahl `1`, Groß-/Kleinschreibung und Leerzeichen bei `on`/`awake` sowie inaktive, unbekannte, unveränderte, fremde und nicht konfigurierte Signale ab. Das Signal setzt ausschließlich den Abfragetimer und versendet keinen TV-Einschaltbefehl. Dokumentation enthält Voraussetzungen, fehlende markenübergreifende Unterstützung und einen neutralen Module-Store-Text. Öffentliche Kopplungsvorlagen enthalten keine persönlichen Objekt-IDs; Tests verwenden fiktive Kennungen.
+
+## Ergänzung Philips TV 1.2.0
+
+Zwei unabhängige Signal-Schaltoptionen (beide standardmäßig aus) ergänzt. Neue Fixture prüft Nur-Ein, Nur-Aus, beide und keine Option, Konfigurationsübernahme ohne Schalten, äquivalente Werte ohne Wiederholung, unbekannte und veraltete Zustände, deaktiviertes Modul, laufende PIN-Kopplung sowie fehlgeschlagene Befehle ohne automatische Wiederholung. Vorhandene Tests zu manuellen Befehlen, Transport und PIN-Kopplung bestehen weiterhin. Keine realen TV-Schaltungen während dieser Prüfungen ausgelöst. Automatische Ein-/Aus-Kopplung muss in der Zielinstallation noch live geprüft werden.
+
+Für Signal-Schaltungen wird der aktuelle Quellwert erneut lokal gelesen. Die Prüfung nutzt den tatsächlichen Variablen-Aktualisierungszeitpunkt; Symcons MessageSink-Zähler wird ausschließlich zur Reihenfolgekontrolle verwendet. Tests für kleine gültige Nachrichtenzähler, doppelte/vertauschte Nachrichten und inzwischen überholte Nachrichteninhalte bestanden.
