@@ -593,17 +593,25 @@ class PhilipsTV extends IPSModuleStrict
                     $candidates = array_values(array_filter($options, fn(string $item): bool => explode('|', $item, 2)[0] === $Value));
                     if (!$candidates) { throw new InvalidArgumentException('Ambilight-Modus nicht unterstützt.'); }
                     $learned = json_decode($this->ReadAttributeString('AmbilightLearnedConfigurations'), true);
+                    // The TV can report style names without algorithms in supportedstyles.
+                    // A previously observed style+variant is still a valid exact preset.
                     $preferred = [];
                     if (is_array($learned)) {
-                        foreach ($candidates as $candidate) {
-                            if (isset($learned[$candidate]) && is_array($learned[$candidate])) { $preferred[] = $candidate; }
+                        foreach ($learned as $key => $config) {
+                            if (is_array($config) && ($config['styleName'] ?? '') === $Value
+                                && is_string($config['menuSetting'] ?? null) && $config['menuSetting'] !== '') {
+                                $preferred[] = $Value . '|' . $config['menuSetting'];
+                            }
                         }
                     }
-                    $selected = in_array($Value . '|' . $currentVariant, $candidates, true)
-                        ? $Value . '|' . $currentVariant
-                        : ($preferred[0] ?? (count($candidates) > 1 && in_array($Value, $candidates, true)
-                            ? array_values(array_filter($candidates, fn(string $item): bool => $item !== $Value))[0]
-                            : $candidates[0]));
+                    $matchingVariant = $Value . '|' . $currentVariant;
+                    $selected = in_array($matchingVariant, $candidates, true) ? $matchingVariant
+                        : ($preferred[0] ?? array_values(array_filter($candidates,
+                            fn(string $item): bool => str_contains($item, '|')))[0] ?? '');
+                    if ($selected === '') {
+                        throw new RuntimeException('Keine bestätigte Stilvariante für ' . $Value
+                            . '. Modus am TV einmal einstellen und Status aktualisieren.');
+                    }
                 } else {
                     $selected = $currentMode . '|' . $Value;
                     if (!in_array($selected, $options, true)) { throw new InvalidArgumentException('Stilvariante für den aktuellen Modus nicht unterstützt.'); }
@@ -631,7 +639,16 @@ class PhilipsTV extends IPSModuleStrict
                     if (!($s['caps']['ambilight'] ?? false) || !$s['online'] || $s['power'] !== 'awake') { throw new RuntimeException('Ambilight derzeit nicht verfügbar.'); }
                     $endpoint = 'ambilight/power'; $body = ['power' => $Value ? 'On' : 'Off']; break;
                 case 'AmbilightStyle':
-                    if (!is_string($Value) || !in_array($Value, array_column($this->AmbilightOptions(), 'value'), true)) {
+                    $supported = array_column($this->AmbilightOptions(), 'value');
+                    $known = json_decode($this->ReadAttributeString('AmbilightLearnedConfigurations'), true);
+                    $pieces = is_string($Value) ? explode('|', $Value, 2) : [];
+                    $learnedExact = count($pieces) === 2 && is_array($known)
+                        && isset($known[$Value]) && is_array($known[$Value])
+                        && ($known[$Value]['styleName'] ?? null) === $pieces[0]
+                        && ($known[$Value]['menuSetting'] ?? null) === $pieces[1]
+                        && in_array($pieces[0], array_map(
+                            fn(string $item): string => explode('|', $item, 2)[0], $supported), true);
+                    if (!is_string($Value) || (!in_array($Value, $supported, true) && !$learnedExact)) {
                         throw new InvalidArgumentException('Dieser Ambilight-Stil wurde nicht als unterstützt erkannt. Bitte zuerst die Modi einlesen.');
                     }
                     if (!$s['online'] || $s['power'] !== 'awake' || !($s['caps']['ambilight'] ?? false)) {
