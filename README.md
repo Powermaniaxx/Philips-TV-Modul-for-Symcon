@@ -1,6 +1,6 @@
 # Philips TV Steuerung (JointSpace) für IP-Symcon
 
-Eigenständiges Philips-TV-Modul **v1.3.1 für IP-Symcon 9.0 oder neuer**, mit direkter JointSpace-Verbindung über HTTPS/API 6 und Digest-Anmeldung. Keine laufende Python- oder Node-RED-Verbindung erforderlich. Vorhandene Kopplungsdaten können weiterverwendet werden.
+Eigenständiges Philips-TV-Modul **v1.4.0 für IP-Symcon 9.0 oder neuer**, mit direkter JointSpace-Verbindung über HTTPS/API 6 und Digest-Anmeldung. Keine laufende Python- oder Node-RED-Verbindung erforderlich. Vorhandene Kopplungsdaten können weiterverwendet werden.
 
 ## Voraussetzungen und Gerätekompatibilität
 
@@ -25,7 +25,15 @@ Einschalten aus Standby ist nur möglich, wenn die TV-API erreichbar bleibt und 
 
 Das Modul funktioniert unabhängig von der Haussteuerung. Für Anzeige und Bedienung in [Symcon-Hausstatus](https://github.com/Powermaniaxx/Symcon-Hausstatus) dort auf **v0.132 oder neuer** aktualisieren und in der zentralen Hausstatus-Instanz unter **Wohnzimmer → Direkte Philips-TV-Instanz** diese Instanz auswählen.
 
-## Shield und Cinema 40 gemeinsam steuern (ab v1.3.1)
+## Ambilight-Modus auswählen (ab v1.4.0)
+
+Ambilight Ein/Aus funktioniert weiterhin wie bisher. Bei eingeschaltetem und verbundenem TV können in der Instanzkonfiguration mit **Unterstützte Ambilight-Modi einlesen** die vom Gerät gemeldeten Stile abgefragt werden. Anschließend lässt sich ein angezeigter Modus samt angebotener Variante auswählen und mit **Ausgewählten Ambilight-Stil setzen** übertragen. Das Modul verwendet hierfür `/ambilight/supportedstyles` und `/ambilight/currentconfiguration`.
+
+Nur vom TV gemeldete Stile und Varianten können gesendet werden. Nach dem Befehl wird die tatsächliche Einstellung bei der nächsten Statusabfrage kontrolliert. Eine Umschaltung auf Video folgen beim normalen Einschalten wird **nicht** erzwungen; die zuletzt gewählte Einstellung bleibt maßgeblich. Helligkeit, Sättigung und beliebige RGB-Farben sind nicht implementiert, solange die jeweils nötigen gerätespezifischen Einstellungen nicht sicher ermittelt sind.
+
+**[Versionshistorie (CHANGELOG)](CHANGELOG.md)** enthält die Änderungen jeder veröffentlichten Repository-Version. Für den Symcon Store muss die Beschreibung der neuesten Version beim Einreichen zusätzlich eingetragen werden.
+
+## Shield und Cinema 40 gemeinsam steuern (ab v1.4.0)
 
 In der Philips-TV-Instanz **Philips automatisch mit Shield ODER AVR steuern** aktivieren und beide Statusvariablen auswählen. Beispiel aus einer Installation: Shield `16350` mit `awake`/`standby`, Denon Cinema 40 `10950` mit Boolean EIN/AUS. Diese IDs sind Beispiele und werden nicht fest im Modul erzwungen.
 
