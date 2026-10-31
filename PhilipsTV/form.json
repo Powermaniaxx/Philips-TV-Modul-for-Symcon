@@ -62,26 +62,7 @@
     },
     {
       "type": "Label",
-      "caption": "Bei aktivem Shield oder AVR: TV EIN und Status alle 30 Sekunden. Wenn beide AUS: TV Standby und keine automatischen Abfragen. Unbekannte Zustände schalten den TV nicht aus. Die manuelle Aktualisierung bleibt möglich. Bestehende externe Shield-TV-Kopplung deaktivieren, damit nicht zwei Steuerungen schalten. Die bisherige Einzel-Steuersignal-Automatik wird bei aktivierter Funktion nicht verwendet."
-    },
-    {
-      "type": "SelectVariable",
-      "name": "WakeSignal",
-      "caption": "Bisheriges einzelnes Steuersignal (nur ohne Shield/AVR-Automatik)"
-    },
-    {
-      "type": "CheckBox",
-      "name": "SignalPowerOn",
-      "caption": "TV bei aktivem Signal einschalten"
-    },
-    {
-      "type": "CheckBox",
-      "name": "SignalPowerOff",
-      "caption": "TV bei inaktivem Signal ausschalten (Standby)"
-    },
-    {
-      "type": "Label",
-      "caption": "Optionaler Betriebszustand, z. B. vom AVR, von einer Shield oder einer eigenen Variable. Aktiv: true, Ganzzahl 1, on oder awake. Inaktiv: false, Ganzzahl 0, off oder standby. Beide Schaltoptionen sind unabhängig und zunächst aus. Ohne Schaltoption setzt ein aktives Signal nur die Abfragen fort. Geschaltet wird erst bei einem anschließenden gültigen Zustandswechsel, nicht beim Übernehmen der Einstellungen. Für die Schaltautomatik einen echten Ein-/Aus-Zustand wählen, keine bloße Online-/Erreichbarkeitsmeldung: ein Verbindungsverlust ist kein bestätigtes Ausschalten. Für denselben Ein-/Aus-Ablauf nicht zusätzlich ein paralleles Kopplungsskript aktivieren."
+      "caption": "Bei aktivem Shield oder AVR: TV EIN und Status alle 30 Sekunden. Wenn beide AUS: TV Standby und keine automatischen Abfragen. Unbekannte Zustände schalten den TV nicht aus. Die manuelle Aktualisierung bleibt möglich. Bestehende externe Shield-TV-Kopplung deaktivieren, damit nicht zwei Steuerungen schalten."
     },
     {
       "type": "NumberSpinner",
