@@ -34,6 +34,7 @@ class PhilipsTV extends IPSModuleStrict
         $this->RegisterAttributeString('Snapshot', '{}');
         $this->RegisterAttributeString('Unsupported', '[]');
         $this->RegisterAttributeString('AmbilightStyles', '[]');
+        $this->RegisterAttributeString('AmbilightPendingDiagnostic', '');
         $this->RegisterAttributeString('Generation', '');
         $this->RegisterAttributeString('ConfigurationHash', '');
         $this->RegisterAttributeInteger('WakeSubscription', 0);
@@ -56,6 +57,7 @@ class PhilipsTV extends IPSModuleStrict
         $this->RegisterVariableString('State', 'TV-Status für Haussteuerung', '', 110);
         $this->RegisterVariableString('TransportInfo', 'Letzte HTTPS-Anfrage', '', 120);
         $this->RegisterVariableString('LastCommand', 'Letzter Schaltversuch', '', 130);
+        $this->RegisterVariableString('AmbilightDiagnostic', 'Ambilight-Modus Diagnose', '', 135);
         $this->RegisterTimer('Poll', 0, 'SVPTV_UpdateStatus($_IPS["TARGET"]);');
     }
 
@@ -505,6 +507,20 @@ class PhilipsTV extends IPSModuleStrict
                 if ($s[$key] !== null) { $this->SetValue($ident, $s[$key]); }
             }
             $this->SetValue('Updated', $s['updated']);
+            $pendingDiagnostic = $this->ReadAttributeString('AmbilightPendingDiagnostic');
+            if ($pendingDiagnostic !== '' && $s['power'] === 'awake') {
+                $expected = json_decode($pendingDiagnostic, true);
+                if (is_array($expected)) {
+                    $observed = ['styleName' => $s['ambilightMode'], 'menuSetting' => $s['ambilightAlgorithm']];
+                    $match = $observed['styleName'] === ($expected['styleName'] ?? null)
+                        && (!isset($expected['menuSetting']) || $observed['menuSetting'] === $expected['menuSetting']);
+                    $diagnostic = 'Gesendet: ' . json_encode($expected, JSON_UNESCAPED_SLASHES)
+                        . ' | TV meldet: ' . json_encode($observed, JSON_UNESCAPED_SLASHES)
+                        . ' | ' . ($match ? 'bei erster Abfrage bestätigt' : 'Abweichung: Modus nicht übernommen');
+                    $this->SetValue('AmbilightDiagnostic', $diagnostic);
+                    $this->WriteAttributeString('AmbilightPendingDiagnostic', '');
+                }
+            }
             $this->SetValue('LastError', implode(' ', $warnings));
             $this->SetStatus(102);
         } catch (Throwable $e) {
@@ -597,7 +613,15 @@ class PhilipsTV extends IPSModuleStrict
             // No status GET before the command and no automatic replay on a timeout.
             $attempt = date('c') . ' · ' . $Ident . ' · POST /6/' . $endpoint;
             $this->SetValue('LastCommand', $attempt . ' · Versand läuft.');
+            if ($endpoint === 'ambilight/currentconfiguration') {
+                $this->WriteAttributeString('AmbilightPendingDiagnostic', '');
+                $this->SetValue('AmbilightDiagnostic', 'Sende: ' . json_encode($body, JSON_UNESCAPED_SLASHES));
+            }
             $this->Api('POST', $endpoint, $body);
+            if ($endpoint === 'ambilight/currentconfiguration') {
+                $this->WriteAttributeString('AmbilightPendingDiagnostic', json_encode($body, JSON_THROW_ON_ERROR));
+                $this->SetValue('AmbilightDiagnostic', 'POST angenommen; warte auf Ist-Zustand. Gesendet: ' . json_encode($body, JSON_UNESCAPED_SLASHES));
+            }
             $this->SetValue('LastCommand', $attempt . ' · TV hat den Empfang bestätigt; Ausführung noch nicht bestätigt.');
             if ($endpoint === 'audio/volume') {
                 // Preserve the other half of the last accepted audio command during rapid commands.
@@ -611,6 +635,10 @@ class PhilipsTV extends IPSModuleStrict
             $this->SetTimerInterval('Poll', 700);
         } catch (Throwable $e) {
             if ($attempt !== null) { $this->SetValue('LastCommand', $attempt . ' · Fehlgeschlagen: ' . $e->getMessage()); }
+            if ($endpoint === 'ambilight/currentconfiguration') {
+                $this->WriteAttributeString('AmbilightPendingDiagnostic', '');
+                $this->SetValue('AmbilightDiagnostic', 'Moduswechsel fehlgeschlagen: ' . $e->getMessage());
+            }
             $this->SetValue('LastError', $e->getMessage());
             $this->SetTimerInterval('Poll', 1000);
             throw $e;
