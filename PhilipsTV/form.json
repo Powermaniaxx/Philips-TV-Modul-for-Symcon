@@ -46,9 +46,28 @@
       "maximum": 3600
     },
     {
+      "type": "CheckBox",
+      "name": "FollowSources",
+      "caption": "Philips automatisch mit Shield ODER AVR steuern (Statusabfrage nur bei aktivem Zuspieler)"
+    },
+    {
+      "type": "SelectVariable",
+      "name": "ShieldSignal",
+      "caption": "Shield-Betriebszustand (awake / standby)"
+    },
+    {
+      "type": "SelectVariable",
+      "name": "AVRSignal",
+      "caption": "Cinema-40-Betriebszustand (Ein / Aus)"
+    },
+    {
+      "type": "Label",
+      "caption": "Bei aktivem Shield oder AVR: TV EIN und Status alle 30 Sekunden. Wenn beide AUS: TV Standby und keine automatischen Abfragen. Unbekannte Zustände schalten den TV nicht aus. Die manuelle Aktualisierung bleibt möglich. Bestehende externe Shield-TV-Kopplung deaktivieren, damit nicht zwei Steuerungen schalten. Die bisherige Einzel-Steuersignal-Automatik wird bei aktivierter Funktion nicht verwendet."
+    },
+    {
       "type": "SelectVariable",
       "name": "WakeSignal",
-      "caption": "Optionales Steuersignal"
+      "caption": "Bisheriges einzelnes Steuersignal (nur ohne Shield/AVR-Automatik)"
     },
     {
       "type": "CheckBox",
@@ -124,7 +143,7 @@
     {
       "type": "Button",
       "caption": "Status aktualisieren / Verbindung prüfen",
-      "onClick": "SVPTV_UpdateStatus($id);"
+      "onClick": "SVPTV_ManualUpdate($id);"
     },
     {
       "type": "Button",
