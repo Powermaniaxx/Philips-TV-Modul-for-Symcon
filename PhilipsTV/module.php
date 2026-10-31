@@ -322,6 +322,21 @@ class PhilipsTV extends IPSModuleStrict
             $modes[$mode] = $mode;
             if ($mode === $currentMode && $variant !== '') { $variants[$variant] = $variant; }
         }
+        // Some Philips models omit the variant list in supportedstyles.
+        // Include variants actually observed for the currently active mode.
+        $learned = json_decode($this->ReadAttributeString('AmbilightLearnedConfigurations'), true);
+        if (is_array($learned)) {
+            foreach ($learned as $config) {
+                if (is_array($config) && ($config['styleName'] ?? null) === $currentMode
+                    && is_string($config['menuSetting'] ?? null) && $config['menuSetting'] !== '') {
+                    $variants[$config['menuSetting']] = $config['menuSetting'];
+                }
+            }
+        }
+        $observedVariant = (string)$this->GetValue('AmbilightAlgorithm');
+        if ($currentMode !== '' && $observedVariant !== '') {
+            $variants[$observedVariant] = $observedVariant;
+        }
         foreach (['AmbilightMode' => $modes, 'AmbilightAlgorithm' => $variants] as $ident => $values) {
             $profile = 'SVPTV.' . $this->InstanceID . '.' . $ident;
             if (!IPS_VariableProfileExists($profile)) { IPS_CreateVariableProfile($profile, 3); }
@@ -628,7 +643,14 @@ class PhilipsTV extends IPSModuleStrict
                     }
                 } else {
                     $selected = $currentMode . '|' . $Value;
-                    if (!in_array($selected, $options, true)) { throw new InvalidArgumentException('Stilvariante für den aktuellen Modus nicht unterstützt.'); }
+                    $learnedVariants = json_decode($this->ReadAttributeString('AmbilightLearnedConfigurations'), true);
+                    $confirmed = is_array($learnedVariants) && isset($learnedVariants[$selected])
+                        && is_array($learnedVariants[$selected])
+                        && ($learnedVariants[$selected]['styleName'] ?? null) === $currentMode
+                        && ($learnedVariants[$selected]['menuSetting'] ?? null) === $Value;
+                    if (!in_array($selected, $options, true) && !$confirmed) {
+                        throw new InvalidArgumentException('Stilvariante für den aktuellen Modus nicht unterstützt.');
+                    }
                 }
                 $Ident = 'AmbilightStyle'; $Value = $selected;
             }
