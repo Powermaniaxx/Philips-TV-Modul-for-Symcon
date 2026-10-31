@@ -117,7 +117,16 @@ class PhilipsTV extends IPSModuleStrict
             $this->WriteAttributeString('SourcesState', $current);
             if ($this->ConfigurationStatus() !== 102 || $this->PairingPending()) { return; }
             if ($current === 'active') { $this->SetTimerInterval('Poll', 100); }
-            elseif ($current === 'inactive') { $this->SetTimerInterval('Poll', 0); }
+            elseif ($current === 'inactive') {
+                $this->SetTimerInterval('Poll', 0);
+                // Do not show the previous TV snapshot as live while polling is disabled.
+                $snapshot = $this->Snapshot();
+                $snapshot['power'] = 'unknown'; $snapshot['caps'] = [];
+                $this->WriteAttributeString('Snapshot', json_encode($snapshot, JSON_THROW_ON_ERROR));
+                $this->SetValue('Online', false);
+                $this->SetValue('PowerState', 'unknown');
+                $this->Publish();
+            }
             // A missing or unknown input must never trigger a Standby command.
             if ($previous === 'unknown' || $current === 'unknown' || $previous === $current) { return; }
             $on = $previous === 'inactive' && $current === 'active';
