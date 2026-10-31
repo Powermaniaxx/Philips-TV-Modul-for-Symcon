@@ -2,6 +2,18 @@
 declare(strict_types=1);
 // SDK and TV fixtures: never contact a real device.
 const VM_UPDATE = 10603;
+$profiles = [];
+function IPS_VariableProfileExists(string $name): bool { return isset($GLOBALS['profiles'][$name]); }
+function IPS_CreateVariableProfile(string $name, int $type): void { $GLOBALS['profiles'][$name] = ['ProfileType' => $type, 'Associations' => []]; }
+function IPS_GetVariableProfile(string $name): array { return $GLOBALS['profiles'][$name]; }
+function IPS_SetVariableProfileAssociation(string $name, mixed $value, string $caption, string $icon, int $color): bool {
+    $items = &$GLOBALS['profiles'][$name]['Associations'];
+    $items = array_values(array_filter($items, fn(array $item): bool => $item['Value'] !== $value));
+    if ($caption !== '') { $items[] = ['Value' => $value, 'Name' => $caption]; }
+    return true;
+}
+function IPS_SetVariableCustomProfile(int $id, string $profile): bool { return true; }
+
 $locks = [];
 $signalValues = [99 => false];
 $signalUpdated = null;
@@ -13,6 +25,7 @@ function IPS_VariableExists(int $id): bool { return in_array($id,[99,16350,10950
 class IPSModuleStrict
 {
     public int $InstanceID = 456;
+    protected function GetIDForIdent(string $ident): int { return 1000 + array_search($ident, array_keys($this->values), true); }
     public array $props = [], $attrs = [], $values = [], $actions = [], $timers = [], $subscriptions = [], $formFields = [];
     public int $status = 0;
     public function Create(): void {}
