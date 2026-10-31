@@ -2,6 +2,10 @@
 
 Änderungen sind anhand der Commits im Repository dokumentiert. Die Versionsinformationen für den Symcon Module Store werden bei einer Veröffentlichung zusätzlich im Store selbst eingetragen.
 
+## 1.4.1 – 31.10.2026
+- Liste der erkannten Ambilight-Modi wird im Status für die Hausstatus-Visualisierung bereitgestellt.
+- Die Hausstatus-Kachel kann damit die vom TV zurückgemeldeten Modi auswählen und erneut einlesen (Hausstatus ab 0.138).
+
 ## 1.4.0 – 31.10.2026
 - Ambilight: Vom TV gemeldete unterstützte Stile und Stilvarianten können über die Instanzkonfiguration eingelesen und ausgewählt werden.
 - Neue Aktion zum Umschalten über die JointSpace-API `ambilight/currentconfiguration`. Nicht vom Fernseher gemeldete Varianten werden abgewiesen.
