@@ -380,6 +380,7 @@ class PhilipsTV extends IPSModuleStrict
             $s['volume'] = null; $s['mute'] = null; $s['activity'] = ''; $s['ambilight'] = null; $s['ambilightMode'] = ''; $s['ambilightAlgorithm'] = '';
         }
         if (!$enabled) { $s['caps'] = []; }
+        $s['ambilightOptions'] = $this->AmbilightOptions();
         $s['kind'] = 'tv'; $s['direct'] = true; $s['device'] = 'philips';
         return json_encode($s, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE);
     }
