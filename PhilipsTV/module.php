@@ -603,6 +603,21 @@ class PhilipsTV extends IPSModuleStrict
                     $endpoint = 'ambilight/currentconfiguration';
                     $body = ['styleName' => $parts[0], 'isExpert' => false];
                     if (isset($parts[1])) { $body['menuSetting'] = $parts[1]; }
+                    // Read the TV's actual payload before changing the mode. Never copy
+                    // style-specific settings (e.g. stringValue) to a different style.
+                    $currentConfig = $this->Api('GET', 'ambilight/currentconfiguration');
+                    $safeConfig = array_intersect_key($currentConfig, array_flip([
+                        'styleName', 'isExpert', 'menuSetting', 'stringValue', 'algorithm'
+                    ]));
+                    $this->SetValue('AmbilightDiagnostic', 'Vorher (TV): ' .
+                        json_encode($safeConfig, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE));
+                    // Only reuse a known device-provided stringValue when it belongs
+                    // to precisely the same selected preset.
+                    if (($currentConfig['styleName'] ?? null) === $parts[0]
+                        && ($currentConfig['menuSetting'] ?? null) === ($parts[1] ?? null)
+                        && is_string($currentConfig['stringValue'] ?? null)) {
+                        $body['stringValue'] = $currentConfig['stringValue'];
+                    }
                     break;
                 case 'RemoteKey':
                     if (!is_string($Value) || !in_array($Value, self::KEYS, true)) { throw new InvalidArgumentException('Unbekannte Fernbedienungstaste.'); }
