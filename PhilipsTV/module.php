@@ -38,6 +38,7 @@ class PhilipsTV extends IPSModuleStrict
         $this->RegisterAttributeInteger('WakeSubscription', 0);
         $this->RegisterAttributeString('SourceSubscriptions', '[]');
         $this->RegisterAttributeString('SourcesState', 'unknown');
+        $this->RegisterAttributeBoolean('ManualRefreshPending', false);
         $this->RegisterAttributeString('SignalState', 'unknown');
         $this->RegisterAttributeInteger('SignalMessageCounter', -1);
         $this->RegisterVariableBoolean('Online', 'TV erreichbar', '~Switch', 10);
@@ -60,6 +61,7 @@ class PhilipsTV extends IPSModuleStrict
     {
         parent::ApplyChanges();
         $this->SetTimerInterval('Poll', 0);
+        $this->WriteAttributeBoolean('ManualRefreshPending', false);
         $old = $this->ReadAttributeInteger('WakeSubscription');
         if ($old > 0) { $this->UnregisterMessage($old, VM_UPDATE); }
         foreach (json_decode($this->ReadAttributeString('SourceSubscriptions'), true) ?: [] as $id) {
@@ -338,6 +340,13 @@ class PhilipsTV extends IPSModuleStrict
         }
     }
 
+    public function ManualUpdate(): void
+    {
+        if ($this->ConfigurationStatus() !== 102 || $this->PairingPending()) { return; }
+        $this->WriteAttributeBoolean('ManualRefreshPending', true);
+        $this->SetTimerInterval('Poll', 100);
+    }
+
     public function UpdateStatus(): void
     {
         $lock = 'SVPTVPoll' . $this->InstanceID;
@@ -349,7 +358,9 @@ class PhilipsTV extends IPSModuleStrict
     private function PollStatus(): void
     {
         $this->SetTimerInterval('Poll', 0);
-        if ($this->ReadPropertyBoolean('FollowSources') && $this->CombinedSourcesState() !== 'active') { return; }
+        $force = $this->ReadAttributeBoolean('ManualRefreshPending');
+        $this->WriteAttributeBoolean('ManualRefreshPending', false);
+        if (!$force && $this->ReadPropertyBoolean('FollowSources') && $this->CombinedSourcesState() !== 'active') { return; }
         if ($this->PairingPending()) { return; }
         if ($this->ConfigurationStatus() !== 102) { $this->SetValue('Online', false); $this->Publish(); return; }
         $generation = $this->ReadAttributeString('Generation');
@@ -429,7 +440,7 @@ class PhilipsTV extends IPSModuleStrict
         if ($this->ConfigurationStatus() !== 102) { throw new RuntimeException('Philips-TV-Verbindung zuerst konfigurieren und aktivieren.'); }
         if ($Ident === 'Refresh') {
             if ($Value !== true) { throw new InvalidArgumentException('Aktualisieren erwartet true.'); }
-            $this->SetTimerInterval('Poll', 100);
+            $this->ManualUpdate();
             return;
         }
         $lock = 'SVPTVCommand' . $this->InstanceID;
