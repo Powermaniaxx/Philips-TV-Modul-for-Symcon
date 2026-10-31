@@ -263,7 +263,7 @@ class PhilipsTV extends IPSModuleStrict
         if (!is_array($styles)) { throw new RuntimeException('Der Fernseher hat keine gültige Liste unterstützter Ambilight-Modi geliefert.'); }
         $valid = array_values(array_filter($styles, fn(mixed $entry): bool => is_array($entry) && is_string($entry['styleName'] ?? null)));
         $this->WriteAttributeString('AmbilightStyles', json_encode(array_slice($valid, 0, 120), JSON_THROW_ON_ERROR));
-        $this->UpdateFormField('AmbilightChoice', 'options', $this->AmbilightOptions());
+        $this->UpdateFormField('AmbilightChoice', 'options', json_encode($this->AmbilightOptions(), JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE));
         $this->UpdateAmbilightSelectors();
         $this->SendDebug('Ambilight-Modi', 'Vom Fernseher gemeldet: ' . count($valid), 0);
     }
