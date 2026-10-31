@@ -1,6 +1,6 @@
 # Philips TV Steuerung (JointSpace) für IP-Symcon
 
-Eigenständiges Philips-TV-Modul **v1.3.0 für IP-Symcon 9.0 oder neuer**, mit direkter JointSpace-Verbindung über HTTPS/API 6 und Digest-Anmeldung. Keine laufende Python- oder Node-RED-Verbindung erforderlich. Vorhandene Kopplungsdaten können weiterverwendet werden.
+Eigenständiges Philips-TV-Modul **v1.3.1 für IP-Symcon 9.0 oder neuer**, mit direkter JointSpace-Verbindung über HTTPS/API 6 und Digest-Anmeldung. Keine laufende Python- oder Node-RED-Verbindung erforderlich. Vorhandene Kopplungsdaten können weiterverwendet werden.
 
 ## Voraussetzungen und Gerätekompatibilität
 
@@ -25,7 +25,7 @@ Einschalten aus Standby ist nur möglich, wenn die TV-API erreichbar bleibt und 
 
 Das Modul funktioniert unabhängig von der Haussteuerung. Für Anzeige und Bedienung in [Symcon-Hausstatus](https://github.com/Powermaniaxx/Symcon-Hausstatus) dort auf **v0.132 oder neuer** aktualisieren und in der zentralen Hausstatus-Instanz unter **Wohnzimmer → Direkte Philips-TV-Instanz** diese Instanz auswählen.
 
-## Shield und Cinema 40 gemeinsam steuern (ab v1.3.0)
+## Shield und Cinema 40 gemeinsam steuern (ab v1.3.1)
 
 In der Philips-TV-Instanz **Philips automatisch mit Shield ODER AVR steuern** aktivieren und beide Statusvariablen auswählen. Beispiel aus einer Installation: Shield `16350` mit `awake`/`standby`, Denon Cinema 40 `10950` mit Boolean EIN/AUS. Diese IDs sind Beispiele und werden nicht fest im Modul erzwungen.
 
@@ -35,7 +35,7 @@ In der Philips-TV-Instanz **Philips automatisch mit Shield ODER AVR steuern** ak
 - Beim Übernehmen der Modulkonfiguration werden keine Ein- oder Ausschaltbefehle gesendet. Ein aktiver Zuspieler startet nur das Polling.
 - Unbekannte Zustände sind keine verlässliche AUS-Meldung; sie lösen daher kein automatisches Standby aus.
 - Die manuelle Statusaktualisierung in der Hausstatus-Kachel und in den Instanzeinstellungen ist weiter möglich, auch wenn beide Zuspieler aus sind.
-- Die bisherige einzelne Steuersignal-Funktion bleibt für Installationen ohne neue ODER-Steuerung unverändert erhalten. Bei aktivierter ODER-Steuerung wird sie nicht zusätzlich benutzt.
+- Die alte Einzel-Steuersignal-Konfiguration wird in der Oberfläche nicht mehr angeboten. Gespeicherte Einstellungen und deren interne Auswertung bleiben zur Abwärtskompatibilität erhalten, solange der neue ODER-Modus nicht aktiviert ist.
 
 **Wichtig:** Die ältere separate Shield/TV-Kopplung darf nicht parallel TV-Befehle senden. Sie vor Nutzung der neuen automatischen Schaltung deaktivieren. Das Einschalten per JointSpace setzt voraus, dass die TV-API im Standby erreichbar ist. Das Modul kann keine physische Einschaltgarantie geben.
 
