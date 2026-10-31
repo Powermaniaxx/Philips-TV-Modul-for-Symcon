@@ -9,7 +9,7 @@ function GetValue(int $id): mixed { return $GLOBALS['signalValues'][$id] ?? null
 function IPS_GetVariable(int $id): array { return ['VariableUpdated'=>$GLOBALS['signalUpdated'] ?? time()]; }
 function IPS_SemaphoreEnter(string $key, int $timeout): bool { if ($GLOBALS['locks'][$key] ?? false) { return false; } $GLOBALS['locks'][$key] = true; return true; }
 function IPS_SemaphoreLeave(string $key): void { $GLOBALS['locks'][$key] = false; }
-function IPS_VariableExists(int $id): bool { return $id === 99; }
+function IPS_VariableExists(int $id): bool { return in_array($id,[99,16350,10950],true); }
 class IPSModuleStrict
 {
     public int $InstanceID = 456;
@@ -21,6 +21,9 @@ class IPSModuleStrict
     protected function RegisterPropertyInteger(string $n, int $v): void { $this->props[$n] = $v; }
     protected function RegisterPropertyString(string $n, string $v): void { $this->props[$n] = $v; }
     protected function RegisterAttributeString(string $n, string $v): void { $this->attrs[$n] = $v; }
+    protected function RegisterAttributeBoolean(string $n, bool $v): void { $this->attrs[$n] = $v; }
+    protected function ReadAttributeBoolean(string $n): bool { return (bool)$this->attrs[$n]; }
+    protected function WriteAttributeBoolean(string $n, bool $v): void { $this->attrs[$n] = $v; }
     protected function RegisterAttributeInteger(string $n, int $v): void { $this->attrs[$n] = $v; }
     protected function RegisterVariableBoolean(string $n, mixed ...$args): bool { $this->values[$n] = false; return true; }
     protected function RegisterVariableInteger(string $n, mixed ...$args): bool { $this->values[$n] = 0; return true; }
