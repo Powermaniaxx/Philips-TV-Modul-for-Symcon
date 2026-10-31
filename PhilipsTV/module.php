@@ -24,6 +24,9 @@ class PhilipsTV extends IPSModuleStrict
         $this->RegisterPropertyInteger('PollInterval', 15);
         $this->RegisterPropertyInteger('StandbyInterval', 0);
         $this->RegisterPropertyInteger('WakeSignal', 0);
+        $this->RegisterPropertyBoolean('FollowSources', false);
+        $this->RegisterPropertyInteger('ShieldSignal', 0);
+        $this->RegisterPropertyInteger('AVRSignal', 0);
         $this->RegisterPropertyBoolean('SignalPowerOn', false);
         $this->RegisterPropertyBoolean('SignalPowerOff', false);
         $this->RegisterPropertyInteger('Timeout', 5000);
@@ -33,6 +36,8 @@ class PhilipsTV extends IPSModuleStrict
         $this->RegisterAttributeString('Generation', '');
         $this->RegisterAttributeString('ConfigurationHash', '');
         $this->RegisterAttributeInteger('WakeSubscription', 0);
+        $this->RegisterAttributeString('SourceSubscriptions', '[]');
+        $this->RegisterAttributeString('SourcesState', 'unknown');
         $this->RegisterAttributeString('SignalState', 'unknown');
         $this->RegisterAttributeInteger('SignalMessageCounter', -1);
         $this->RegisterVariableBoolean('Online', 'TV erreichbar', '~Switch', 10);
@@ -57,8 +62,18 @@ class PhilipsTV extends IPSModuleStrict
         $this->SetTimerInterval('Poll', 0);
         $old = $this->ReadAttributeInteger('WakeSubscription');
         if ($old > 0) { $this->UnregisterMessage($old, VM_UPDATE); }
+        foreach (json_decode($this->ReadAttributeString('SourceSubscriptions'), true) ?: [] as $id) {
+            if ($id > 0) { $this->UnregisterMessage((int)$id, VM_UPDATE); }
+        }
+        $following = $this->ReadPropertyBoolean('FollowSources');
         $wake = $this->ReadPropertyInteger('WakeSignal');
-        if ($wake > 0 && IPS_VariableExists($wake)) { $this->RegisterMessage($wake, VM_UPDATE); }
+        if (!$following && $wake > 0 && IPS_VariableExists($wake)) { $this->RegisterMessage($wake, VM_UPDATE); }
+        $sourceIDs = $following ? array_values(array_unique(array_filter([
+            $this->ReadPropertyInteger('ShieldSignal'), $this->ReadPropertyInteger('AVRSignal')],
+            fn(int $id): bool => $id > 0 && IPS_VariableExists($id)))) : [];
+        foreach ($sourceIDs as $id) { $this->RegisterMessage($id, VM_UPDATE); }
+        $this->WriteAttributeString('SourceSubscriptions', json_encode($sourceIDs, JSON_THROW_ON_ERROR));
+        $this->WriteAttributeString('SourcesState', $following ? $this->CombinedSourcesState() : 'unknown');
         $this->WriteAttributeInteger('WakeSubscription', $wake);
         // Establish a baseline only. Enabling an option must never switch the TV.
         $signalState = 'unknown';
@@ -84,12 +99,39 @@ class PhilipsTV extends IPSModuleStrict
         $this->SetValue('Online', false);
         $this->SetValue('LastError', $code === 104 ? 'Deaktiviert.' : ($code === 102 ? 'Noch keine aktuelle Abfrage.' : 'Konfiguration prüfen.'));
         $this->Publish();
-        if ($code === 102) { $this->SetTimerInterval('Poll', 1000); }
+        if ($code === 102 && (!$following || $this->CombinedSourcesState() === 'active')) {
+            $this->SetTimerInterval('Poll', 1000);
+        }
         $this->MaintainPairing();
     }
 
     public function MessageSink(int $TimeStamp, int $SenderID, int $Message, array $Data): void
     {
+        if ($this->ReadPropertyBoolean('FollowSources')) {
+            $sources = [(int)$this->ReadPropertyInteger('ShieldSignal'), (int)$this->ReadPropertyInteger('AVRSignal')];
+            if ($Message !== VM_UPDATE || !in_array($SenderID, $sources, true) || !($Data[1] ?? false)) { return; }
+            $previous = $this->ReadAttributeString('SourcesState');
+            $current = $this->CombinedSourcesState();
+            $this->WriteAttributeString('SourcesState', $current);
+            if ($this->ConfigurationStatus() !== 102 || $this->PairingPending()) { return; }
+            if ($current === 'active') { $this->SetTimerInterval('Poll', 100); }
+            elseif ($current === 'inactive') { $this->SetTimerInterval('Poll', 0); }
+            // A missing or unknown input must never trigger a Standby command.
+            if ($previous === 'unknown' || $current === 'unknown' || $previous === $current) { return; }
+            $on = $previous === 'inactive' && $current === 'active';
+            $off = $previous === 'active' && $current === 'inactive';
+            if ($on || $off) {
+                try {
+                    $this->RequestAction('Power', $on);
+                    if ($off) { $this->SetTimerInterval('Poll', 0); }
+                } catch (Throwable $e) {
+                    $this->SetValue('LastError', 'Zuspieler-Schaltbefehl fehlgeschlagen: ' . $e->getMessage());
+                    if ($off) { $this->SetTimerInterval('Poll', 0); }
+                    $this->Publish();
+                }
+            }
+            return;
+        }
         $signalID = $this->ReadPropertyInteger('WakeSignal');
         if ($signalID <= 0 || !IPS_VariableExists($signalID) || $Message !== VM_UPDATE || $SenderID !== $signalID || !($Data[1] ?? false)) { return; }
         $previous = $this->ReadAttributeString('SignalState');
@@ -129,6 +171,20 @@ class PhilipsTV extends IPSModuleStrict
                 default => 'unknown'
             };
         }
+        return 'unknown';
+    }
+
+    private function CombinedSourcesState(): string
+    {
+        $shield = $this->ReadPropertyInteger('ShieldSignal');
+        $avr = $this->ReadPropertyInteger('AVRSignal');
+        if ($shield <= 0 || $avr <= 0 || !IPS_VariableExists($shield) || !IPS_VariableExists($avr)) { return 'unknown'; }
+        try {
+            $a = $this->SignalState(GetValue($shield));
+            $b = $this->SignalState(GetValue($avr));
+            if ($a === 'active' || $b === 'active') { return 'active'; }
+            if ($a === 'inactive' && $b === 'inactive') { return 'inactive'; }
+        } catch (Throwable $e) { return 'unknown'; }
         return 'unknown';
     }
 
@@ -293,6 +349,7 @@ class PhilipsTV extends IPSModuleStrict
     private function PollStatus(): void
     {
         $this->SetTimerInterval('Poll', 0);
+        if ($this->ReadPropertyBoolean('FollowSources') && $this->CombinedSourcesState() !== 'active') { return; }
         if ($this->PairingPending()) { return; }
         if ($this->ConfigurationStatus() !== 102) { $this->SetValue('Online', false); $this->Publish(); return; }
         $generation = $this->ReadAttributeString('Generation');
@@ -362,6 +419,7 @@ class PhilipsTV extends IPSModuleStrict
         $standby = ($this->Snapshot()['power'] ?? '') === 'standby';
         $interval = $standby ? max(0, min(3600, $this->ReadPropertyInteger('StandbyInterval')))
             : max(5, min(300, $this->ReadPropertyInteger('PollInterval')));
+        if ($this->ReadPropertyBoolean('FollowSources')) { $interval = $this->CombinedSourcesState() === 'active' ? 30 : 0; }
         $this->SetTimerInterval('Poll', $interval * 1000);
     }
 
