@@ -98,6 +98,7 @@ class PhilipsTV extends IPSModuleStrict
         $this->WriteAttributeString('Unsupported', '[]');
         $this->WriteAttributeString('Generation', bin2hex(random_bytes(8)));
         $this->EnableAction('Power');
+        $this->UpdateAmbilightSelectors();
         foreach (['Volume', 'Mute', 'Ambilight'] as $ident) { $this->DisableAction($ident); }
         $code = $this->ConfigurationStatus();
         $this->SetStatus($code);
@@ -258,12 +259,35 @@ class PhilipsTV extends IPSModuleStrict
         $valid = array_values(array_filter($styles, fn(mixed $entry): bool => is_array($entry) && is_string($entry['styleName'] ?? null)));
         $this->WriteAttributeString('AmbilightStyles', json_encode(array_slice($valid, 0, 120), JSON_THROW_ON_ERROR));
         $this->UpdateFormField('AmbilightChoice', 'options', $this->AmbilightOptions());
+        $this->UpdateAmbilightSelectors();
         $this->SendDebug('Ambilight-Modi', 'Vom Fernseher gemeldet: ' . count($valid), 0);
     }
 
     public function SetAmbilightStyle(string $selection): void
     {
         $this->RequestAction('AmbilightStyle', $selection);
+    }
+
+    /** Offer actual TV-reported modes as actions without replacing existing string status variables. */
+    private function UpdateAmbilightSelectors(): void
+    {
+        $options = $this->AmbilightOptions();
+        $modes = [];
+        $variants = [];
+        $currentMode = (string)$this->GetValue('AmbilightMode');
+        foreach ($options as $option) {
+            [$mode, $variant] = array_pad(explode('|', $option['value'], 2), 2, '');
+            $modes[$mode] = $mode;
+            if ($mode === $currentMode && $variant !== '') { $variants[$variant] = $variant; }
+        }
+        foreach (['AmbilightMode' => $modes, 'AmbilightAlgorithm' => $variants] as $ident => $values) {
+            $profile = 'SVPTV.' . $this->InstanceID . '.' . $ident;
+            if (!IPS_VariableProfileExists($profile)) { IPS_CreateVariableProfile($profile, 3); }
+            $old = IPS_GetVariableProfile($profile)['Associations'] ?? [];
+            foreach ($old as $association) { IPS_SetVariableProfileAssociation($profile, $association['Value'], '', '', -1); }
+            foreach ($values as $value => $caption) { IPS_SetVariableProfileAssociation($profile, (string)$value, $caption, '', -1); }
+            IPS_SetVariableCustomProfile($this->GetIDForIdent($ident), $profile);
+        }
     }
 
     private function DiagnosticCaptions(): array
@@ -391,6 +415,13 @@ class PhilipsTV extends IPSModuleStrict
         $this->SetValue('State', $state);
         foreach ($this->DiagnosticCaptions() as $name => $caption) { $this->UpdateFormField($name, 'caption', $caption); }
         $s = json_decode($state, true, 32, JSON_THROW_ON_ERROR);
+        $selectable = $s['online'] && $s['power'] === 'awake' && ($s['caps']['ambilight'] ?? false);
+        foreach (['AmbilightMode', 'AmbilightAlgorithm'] as $ident) {
+            $profile = 'SVPTV.' . $this->InstanceID . '.' . $ident;
+            $hasOptions = IPS_VariableProfileExists($profile) && count(IPS_GetVariableProfile($profile)['Associations'] ?? []) > 0;
+            if ($selectable && $hasOptions) { $this->EnableAction($ident); }
+            else { $this->DisableAction($ident); }
+        }
         foreach (['Volume' => 'audio', 'Mute' => 'audio', 'Ambilight' => 'ambilight'] as $ident => $cap) {
             if ($s['online'] && $s['power'] === 'awake' && ($s['caps'][$cap] ?? false)) { $this->EnableAction($ident); }
             else { $this->DisableAction($ident); }
@@ -486,6 +517,7 @@ class PhilipsTV extends IPSModuleStrict
             $this->SetValue('LastError', $e->getMessage());
             $this->SetStatus($e->getCode() === 202 ? 202 : 201);
         }
+        $this->UpdateAmbilightSelectors();
         $this->Publish();
         $standby = ($this->Snapshot()['power'] ?? '') === 'standby';
         $interval = $standby ? max(0, min(3600, $this->ReadPropertyInteger('StandbyInterval')))
@@ -509,6 +541,21 @@ class PhilipsTV extends IPSModuleStrict
         try {
             $body = []; $endpoint = '';
             $s = json_decode($this->GetState(), true, 32, JSON_THROW_ON_ERROR);
+            if ($Ident === 'AmbilightMode' || $Ident === 'AmbilightAlgorithm') {
+                if (!is_string($Value)) { throw new InvalidArgumentException('Ambilight-Auswahl erwartet Text.'); }
+                $currentMode = (string)$this->GetValue('AmbilightMode');
+                $currentVariant = (string)$this->GetValue('AmbilightAlgorithm');
+                $options = array_column($this->AmbilightOptions(), 'value');
+                if ($Ident === 'AmbilightMode') {
+                    $candidates = array_values(array_filter($options, fn(string $item): bool => explode('|', $item, 2)[0] === $Value));
+                    if (!$candidates) { throw new InvalidArgumentException('Ambilight-Modus nicht unterstützt.'); }
+                    $selected = in_array($Value . '|' . $currentVariant, $candidates, true) ? $Value . '|' . $currentVariant : (in_array($Value, $candidates, true) ? $Value : $candidates[0]);
+                } else {
+                    $selected = $currentMode . '|' . $Value;
+                    if (!in_array($selected, $options, true)) { throw new InvalidArgumentException('Stilvariante für den aktuellen Modus nicht unterstützt.'); }
+                }
+                $Ident = 'AmbilightStyle'; $Value = $selected;
+            }
             switch ($Ident) {
                 case 'Power':
                     if (!is_bool($Value)) { throw new InvalidArgumentException('Ein/Aus erwartet true oder false.'); }
