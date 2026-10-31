@@ -592,7 +592,18 @@ class PhilipsTV extends IPSModuleStrict
                 if ($Ident === 'AmbilightMode') {
                     $candidates = array_values(array_filter($options, fn(string $item): bool => explode('|', $item, 2)[0] === $Value));
                     if (!$candidates) { throw new InvalidArgumentException('Ambilight-Modus nicht unterstützt.'); }
-                    $selected = in_array($Value . '|' . $currentVariant, $candidates, true) ? $Value . '|' . $currentVariant : (in_array($Value, $candidates, true) ? $Value : $candidates[0]);
+                    $learned = json_decode($this->ReadAttributeString('AmbilightLearnedConfigurations'), true);
+                    $preferred = [];
+                    if (is_array($learned)) {
+                        foreach ($candidates as $candidate) {
+                            if (isset($learned[$candidate]) && is_array($learned[$candidate])) { $preferred[] = $candidate; }
+                        }
+                    }
+                    $selected = in_array($Value . '|' . $currentVariant, $candidates, true)
+                        ? $Value . '|' . $currentVariant
+                        : ($preferred[0] ?? (count($candidates) > 1 && in_array($Value, $candidates, true)
+                            ? array_values(array_filter($candidates, fn(string $item): bool => $item !== $Value))[0]
+                            : $candidates[0]));
                 } else {
                     $selected = $currentMode . '|' . $Value;
                     if (!in_array($selected, $options, true)) { throw new InvalidArgumentException('Stilvariante für den aktuellen Modus nicht unterstützt.'); }
