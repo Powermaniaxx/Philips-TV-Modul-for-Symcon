@@ -35,6 +35,7 @@ class PhilipsTV extends IPSModuleStrict
         $this->RegisterAttributeString('Unsupported', '[]');
         $this->RegisterAttributeString('AmbilightStyles', '[]');
         $this->RegisterAttributeString('AmbilightPendingDiagnostic', '');
+        $this->RegisterAttributeString('AmbilightPreviousConfiguration', '');
         $this->RegisterAttributeString('Generation', '');
         $this->RegisterAttributeString('ConfigurationHash', '');
         $this->RegisterAttributeInteger('WakeSubscription', 0);
@@ -514,7 +515,7 @@ class PhilipsTV extends IPSModuleStrict
                     $observed = ['styleName' => $s['ambilightMode'], 'menuSetting' => $s['ambilightAlgorithm']];
                     $match = $observed['styleName'] === ($expected['styleName'] ?? null)
                         && (!isset($expected['menuSetting']) || $observed['menuSetting'] === $expected['menuSetting']);
-                    $diagnostic = 'Gesendet: ' . json_encode($expected, JSON_UNESCAPED_SLASHES)
+                    $diagnostic = 'Vorher: ' . $this->ReadAttributeString('AmbilightPreviousConfiguration') . ' | Gesendet: ' . json_encode($expected, JSON_UNESCAPED_SLASHES)
                         . ' | TV meldet: ' . json_encode($observed, JSON_UNESCAPED_SLASHES)
                         . ' | ' . ($match ? 'bei erster Abfrage bestätigt' : 'Abweichung: Modus nicht übernommen');
                     $this->SetValue('AmbilightDiagnostic', $diagnostic);
@@ -609,7 +610,7 @@ class PhilipsTV extends IPSModuleStrict
                     $safeConfig = array_intersect_key($currentConfig, array_flip([
                         'styleName', 'isExpert', 'menuSetting', 'stringValue', 'algorithm'
                     ]));
-                    $this->SetValue('AmbilightDiagnostic', 'Vorher (TV): ' .
+                    $this->WriteAttributeString('AmbilightPreviousConfiguration',
                         json_encode($safeConfig, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE));
                     // Only reuse a known device-provided stringValue when it belongs
                     // to precisely the same selected preset.
@@ -635,7 +636,7 @@ class PhilipsTV extends IPSModuleStrict
             $this->Api('POST', $endpoint, $body);
             if ($endpoint === 'ambilight/currentconfiguration') {
                 $this->WriteAttributeString('AmbilightPendingDiagnostic', json_encode($body, JSON_THROW_ON_ERROR));
-                $this->SetValue('AmbilightDiagnostic', 'POST angenommen; warte auf Ist-Zustand. Gesendet: ' . json_encode($body, JSON_UNESCAPED_SLASHES));
+                $this->SetValue('AmbilightDiagnostic', 'Vorher: ' . $this->ReadAttributeString('AmbilightPreviousConfiguration') . ' | POST angenommen; warte auf Ist-Zustand. Gesendet: ' . json_encode($body, JSON_UNESCAPED_SLASHES));
             }
             $this->SetValue('LastCommand', $attempt . ' · TV hat den Empfang bestätigt; Ausführung noch nicht bestätigt.');
             if ($endpoint === 'audio/volume') {
