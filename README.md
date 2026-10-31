@@ -33,6 +33,8 @@ Nur vom TV gemeldete Stile und Varianten können gesendet werden. Nach dem Befeh
 
 Die Ambilight-Modi stehen ab Hausstatus v0.138 auch in der Philips-TV-Kachel zur Auswahl. Dort kann die Liste direkt vom TV neu eingelesen werden.
 
+Alle neuen Git-Commits werden mit der jeweils betroffenen Modulversion im Format `vX.Y.Z: Änderung` beschrieben.
+
 **[Versionshistorie (CHANGELOG)](CHANGELOG.md)** enthält die Änderungen jeder veröffentlichten Repository-Version. Für den Symcon Store muss die Beschreibung der neuesten Version beim Einreichen zusätzlich eingetragen werden.
 
 ## Shield und Cinema 40 gemeinsam steuern (ab v1.4.1)
