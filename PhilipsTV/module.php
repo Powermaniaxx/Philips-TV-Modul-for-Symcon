@@ -36,6 +36,7 @@ class PhilipsTV extends IPSModuleStrict
         $this->RegisterAttributeString('AmbilightStyles', '[]');
         $this->RegisterAttributeString('AmbilightPendingDiagnostic', '');
         $this->RegisterAttributeString('AmbilightPreviousConfiguration', '');
+        $this->RegisterAttributeString('AmbilightLearnedConfigurations', '{}');
         $this->RegisterAttributeString('Generation', '');
         $this->RegisterAttributeString('ConfigurationHash', '');
         $this->RegisterAttributeInteger('WakeSubscription', 0);
@@ -95,6 +96,7 @@ class PhilipsTV extends IPSModuleStrict
         if ($hash !== $this->ReadAttributeString('ConfigurationHash')) {
             $this->WriteAttributeString('Snapshot', '{}');
             $this->WriteAttributeString('AmbilightStyles', '[]');
+            $this->WriteAttributeString('AmbilightLearnedConfigurations', '{}');
             $this->WriteAttributeString('ConfigurationHash', $hash);
             $this->SetValue('PowerState', 'unknown');
         }
@@ -264,6 +266,29 @@ class PhilipsTV extends IPSModuleStrict
         $this->UpdateFormField('AmbilightChoice', 'options', $this->AmbilightOptions());
         $this->UpdateAmbilightSelectors();
         $this->SendDebug('Ambilight-Modi', 'Vom Fernseher gemeldet: ' . count($valid), 0);
+    }
+
+    /** Save only a complete configuration actually reported by this TV. */
+    private function LearnAmbilightConfiguration(array $config): void
+    {
+        $style = $config['styleName'] ?? null;
+        $variant = $config['menuSetting'] ?? null;
+        if (!is_string($style) || $style === '' || strlen($style) > 80
+            || !preg_match('/^[A-Za-z0-9_ ]+$/D', $style)) { return; }
+        if ($variant !== null && (!is_string($variant) || strlen($variant) > 80
+            || !preg_match('/^[A-Za-z0-9_ ]+$/D', $variant))) { return; }
+        $key = $style . '|' . ($variant ?? '');
+        $known = json_decode($this->ReadAttributeString('AmbilightLearnedConfigurations'), true);
+        if (!is_array($known)) { $known = []; }
+        $allowed = ['styleName', 'menuSetting', 'isExpert', 'stringValue'];
+        $safe = array_intersect_key($config, array_flip($allowed));
+        if (isset($safe['stringValue']) && (!is_string($safe['stringValue']) || strlen($safe['stringValue']) > 120)) {
+            unset($safe['stringValue']);
+        }
+        if (isset($safe['isExpert']) && !is_bool($safe['isExpert'])) { unset($safe['isExpert']); }
+        $known[$key] = $safe;
+        if (count($known) > 120) { $known = array_slice($known, -120, null, true); }
+        $this->WriteAttributeString('AmbilightLearnedConfigurations', json_encode($known, JSON_THROW_ON_ERROR));
     }
 
     public function SetAmbilightStyle(string $selection): void
@@ -486,6 +511,7 @@ class PhilipsTV extends IPSModuleStrict
                             if (!in_array($data['power'] ?? null, ['On', 'Off'], true)) { throw new RuntimeException('Ungültiger Ambilight-Status.'); }
                             $s['ambilight'] = $data['power'] === 'On'; $s['caps']['ambilight'] = true;
                         } else {
+                            $this->LearnAmbilightConfiguration($data);
                             $s['ambilightMode'] = (string)($data['styleName'] ?? '');
                             $s['ambilightAlgorithm'] = (string)($data['menuSetting'] ?? $data['algorithm'] ?? '');
                         }
@@ -612,12 +638,17 @@ class PhilipsTV extends IPSModuleStrict
                     ]));
                     $this->WriteAttributeString('AmbilightPreviousConfiguration',
                         json_encode($safeConfig, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE));
-                    // Only reuse a known device-provided stringValue when it belongs
-                    // to precisely the same selected preset.
-                    if (($currentConfig['styleName'] ?? null) === $parts[0]
-                        && ($currentConfig['menuSetting'] ?? null) === ($parts[1] ?? null)
-                        && is_string($currentConfig['stringValue'] ?? null)) {
-                        $body['stringValue'] = $currentConfig['stringValue'];
+                    $learned = json_decode($this->ReadAttributeString('AmbilightLearnedConfigurations'), true);
+                    $targetKey = $parts[0] . '|' . ($parts[1] ?? '');
+                    if (is_array($learned) && isset($learned[$targetKey]) && is_array($learned[$targetKey])) {
+                        // Reuse only an exact mode/variant previously read back from this TV.
+                        $candidate = $learned[$targetKey];
+                        if (($candidate['styleName'] ?? null) === $parts[0]
+                            && ($candidate['menuSetting'] ?? null) === ($parts[1] ?? null)) {
+                            foreach (['isExpert', 'stringValue'] as $field) {
+                                if (array_key_exists($field, $candidate)) { $body[$field] = $candidate[$field]; }
+                            }
+                        }
                     }
                     break;
                 case 'RemoteKey':
