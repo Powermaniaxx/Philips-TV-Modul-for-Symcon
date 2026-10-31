@@ -639,6 +639,26 @@ class PhilipsTV extends IPSModuleStrict
                     if (!($s['caps']['ambilight'] ?? false) || !$s['online'] || $s['power'] !== 'awake') { throw new RuntimeException('Ambilight derzeit nicht verfügbar.'); }
                     $endpoint = 'ambilight/power'; $body = ['power' => $Value ? 'On' : 'Off']; break;
                 case 'AmbilightStyle':
+                    // Resolve mode-only commands too (module form and external visualisations
+                    // invoke AmbilightStyle directly, bypassing AmbilightMode).
+                    if (is_string($Value) && !str_contains($Value, '|')) {
+                        $requestedMode = $Value;
+                        $learnedModes = json_decode($this->ReadAttributeString('AmbilightLearnedConfigurations'), true);
+                        $resolved = null;
+                        if (is_array($learnedModes)) {
+                            foreach ($learnedModes as $entry) {
+                                if (is_array($entry) && ($entry['styleName'] ?? null) === $requestedMode
+                                    && is_string($entry['menuSetting'] ?? null) && $entry['menuSetting'] !== '') {
+                                    $resolved = $requestedMode . '|' . $entry['menuSetting'];
+                                    break;
+                                }
+                            }
+                        }
+                        if ($resolved === null) {
+                            throw new RuntimeException('Für ' . $requestedMode . ' ist keine vom TV bestätigte Stilvariante gespeichert. Bitte am Fernseher wählen und den Status aktualisieren.');
+                        }
+                        $Value = $resolved;
+                    }
                     $supported = array_column($this->AmbilightOptions(), 'value');
                     $known = json_decode($this->ReadAttributeString('AmbilightLearnedConfigurations'), true);
                     $pieces = is_string($Value) ? explode('|', $Value, 2) : [];
