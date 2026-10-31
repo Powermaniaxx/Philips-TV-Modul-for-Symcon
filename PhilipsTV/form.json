@@ -122,6 +122,26 @@
       "caption": "Letzter Schaltversuch: Noch kein Schaltversuch protokolliert."
     },
     {
+      "type": "Label",
+      "caption": "Ambilight-Modus: Vom eingeschalteten Fernseher die unterstützten Modi einlesen. Danach die Instanzkonfiguration bei Bedarf erneut öffnen. Angezeigt werden nur die vom TV gemeldeten Stile und Varianten."
+    },
+    {
+      "type": "Button",
+      "caption": "Unterstützte Ambilight-Modi einlesen",
+      "onClick": "SVPTV_DiscoverAmbilightStyles($id);"
+    },
+    {
+      "type": "Select",
+      "name": "AmbilightChoice",
+      "caption": "Ambilight-Stil und Variante auswählen",
+      "options": []
+    },
+    {
+      "type": "Button",
+      "caption": "Ausgewählten Ambilight-Stil setzen",
+      "onClick": "SVPTV_SetAmbilightStyle($id, $AmbilightChoice);"
+    },
+    {
       "type": "Button",
       "caption": "Status aktualisieren / Verbindung prüfen",
       "onClick": "SVPTV_ManualUpdate($id);"
