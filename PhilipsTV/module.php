@@ -33,6 +33,7 @@ class PhilipsTV extends IPSModuleStrict
         $this->RegisterPropertyBoolean('VerifyTLS', false);
         $this->RegisterAttributeString('Snapshot', '{}');
         $this->RegisterAttributeString('Unsupported', '[]');
+        $this->RegisterAttributeString('AmbilightStyles', '[]');
         $this->RegisterAttributeString('Generation', '');
         $this->RegisterAttributeString('ConfigurationHash', '');
         $this->RegisterAttributeInteger('WakeSubscription', 0);
@@ -49,6 +50,7 @@ class PhilipsTV extends IPSModuleStrict
         $this->RegisterVariableString('Activity', 'Aktive Anwendung / Eingang', '', 60);
         $this->RegisterVariableBoolean('Ambilight', 'Ambilight', '~Switch', 70);
         $this->RegisterVariableString('AmbilightMode', 'Ambilight-Modus', '', 80);
+        $this->RegisterVariableString('AmbilightAlgorithm', 'Ambilight-Stilvariante', '', 85);
         $this->RegisterVariableInteger('Updated', 'Letzte Statusabfrage', '~UnixTimestamp', 90);
         $this->RegisterVariableString('LastError', 'Diagnose', '', 100);
         $this->RegisterVariableString('State', 'TV-Status für Haussteuerung', '', 110);
@@ -89,6 +91,7 @@ class PhilipsTV extends IPSModuleStrict
             $this->ReadPropertyString('Username'), $this->ReadPropertyString('Password')], JSON_THROW_ON_ERROR));
         if ($hash !== $this->ReadAttributeString('ConfigurationHash')) {
             $this->WriteAttributeString('Snapshot', '{}');
+            $this->WriteAttributeString('AmbilightStyles', '[]');
             $this->WriteAttributeString('ConfigurationHash', $hash);
             $this->SetValue('PowerState', 'unknown');
         }
@@ -212,11 +215,55 @@ class PhilipsTV extends IPSModuleStrict
         $form = json_decode((string)file_get_contents(__DIR__ . '/form.json'), true, 32, JSON_THROW_ON_ERROR);
         $captions = $this->DiagnosticCaptions();
         foreach ($form['actions'] as &$action) {
+            if (($action['name'] ?? '') === 'AmbilightChoice') {
+                $action['options'] = $this->AmbilightOptions();
+            }
             $name = $action['name'] ?? '';
             if (isset($captions[$name])) { $action['caption'] = $captions[$name]; }
         }
         unset($action);
         return json_encode($form, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE);
+    }
+
+    private function AmbilightOptions(): array
+    {
+        $styles = json_decode($this->ReadAttributeString('AmbilightStyles'), true);
+        if (!is_array($styles)) { return []; }
+        $options = [];
+        foreach ($styles as $entry) {
+            if (!is_array($entry)) { continue; }
+            $style = $entry['styleName'] ?? '';
+            if (!is_string($style) || $style === '' || strlen($style) > 80 || !preg_match('/^[A-Za-z0-9_ ]+$/D', $style)) { continue; }
+            $algorithms = $entry['algorithms'] ?? [];
+            if (!is_array($algorithms) || $algorithms === []) {
+                $options[] = ['caption' => $style, 'value' => $style];
+                continue;
+            }
+            foreach ($algorithms as $algorithm) {
+                if (!is_string($algorithm) || strlen($algorithm) > 80 || !preg_match('/^[A-Za-z0-9_ ]+$/D', $algorithm)) { continue; }
+                $options[] = ['caption' => $style . ' · ' . $algorithm, 'value' => $style . '|' . $algorithm];
+            }
+        }
+        return array_slice($options, 0, 120);
+    }
+
+    public function DiscoverAmbilightStyles(): void
+    {
+        if ($this->ConfigurationStatus() !== 102 || $this->PairingPending()) { throw new RuntimeException('TV-Verbindung muss aktiv und gekoppelt sein.'); }
+        $s = json_decode($this->GetState(), true, 32, JSON_THROW_ON_ERROR);
+        if (!$s['online'] || $s['power'] !== 'awake') { throw new RuntimeException('Zum Einlesen der Ambilight-Modi muss der Fernseher eingeschaltet und erreichbar sein.'); }
+        $data = $this->Api('GET', 'ambilight/supportedstyles');
+        $styles = $data['supportedStyles'] ?? null;
+        if (!is_array($styles)) { throw new RuntimeException('Der Fernseher hat keine gültige Liste unterstützter Ambilight-Modi geliefert.'); }
+        $valid = array_values(array_filter($styles, fn(mixed $entry): bool => is_array($entry) && is_string($entry['styleName'] ?? null)));
+        $this->WriteAttributeString('AmbilightStyles', json_encode(array_slice($valid, 0, 120), JSON_THROW_ON_ERROR));
+        $this->UpdateFormField('AmbilightChoice', 'options', $this->AmbilightOptions());
+        $this->SendDebug('Ambilight-Modi', 'Vom Fernseher gemeldet: ' . count($valid), 0);
+    }
+
+    public function SetAmbilightStyle(string $selection): void
+    {
+        $this->RequestAction('AmbilightStyle', $selection);
     }
 
     private function DiagnosticCaptions(): array
@@ -321,7 +368,7 @@ class PhilipsTV extends IPSModuleStrict
         $interval = ($s['power'] ?? '') === 'standby' ? $this->ReadPropertyInteger('StandbyInterval') : $this->ReadPropertyInteger('PollInterval');
         $stale = !$paused && time() - (int)($s['updated'] ?? 0) > max(45, $interval * 3);
         $s += ['power' => 'unknown', 'updated' => 0, 'volume' => null, 'mute' => null, 'activity' => '',
-            'ambilight' => null, 'ambilightMode' => '', 'caps' => []];
+            'ambilight' => null, 'ambilightMode' => '', 'ambilightAlgorithm' => '', 'caps' => []];
         $s['online'] = $enabled && !$stale && !$paused && $this->GetValue('Online');
         $s['paused'] = $paused;
         $s['stale'] = $stale;
@@ -330,7 +377,7 @@ class PhilipsTV extends IPSModuleStrict
         $s['lastCommand'] = $this->GetValue('LastCommand');
         if (!$enabled || $stale || (!$s['online'] && !$paused)) {
             $s['power'] = 'unknown'; $s['caps'] = [];
-            $s['volume'] = null; $s['mute'] = null; $s['activity'] = ''; $s['ambilight'] = null; $s['ambilightMode'] = '';
+            $s['volume'] = null; $s['mute'] = null; $s['activity'] = ''; $s['ambilight'] = null; $s['ambilightMode'] = ''; $s['ambilightAlgorithm'] = '';
         }
         if (!$enabled) { $s['caps'] = []; }
         $s['kind'] = 'tv'; $s['direct'] = true; $s['device'] = 'philips';
@@ -373,7 +420,7 @@ class PhilipsTV extends IPSModuleStrict
         if ($this->PairingPending()) { return; }
         if ($this->ConfigurationStatus() !== 102) { $this->SetValue('Online', false); $this->Publish(); return; }
         $generation = $this->ReadAttributeString('Generation');
-        $s = ['caps' => [], 'volume' => null, 'mute' => null, 'ambilight' => null, 'ambilightMode' => '', 'activity' => ''];
+        $s = ['caps' => [], 'volume' => null, 'mute' => null, 'ambilight' => null, 'ambilightMode' => '', 'ambilightAlgorithm' => '', 'activity' => ''];
         $warnings = [];
         try {
             $power = $this->Api('GET', 'powerstate');
@@ -403,7 +450,10 @@ class PhilipsTV extends IPSModuleStrict
                         } elseif ($endpoint === 'ambilight/power') {
                             if (!in_array($data['power'] ?? null, ['On', 'Off'], true)) { throw new RuntimeException('Ungültiger Ambilight-Status.'); }
                             $s['ambilight'] = $data['power'] === 'On'; $s['caps']['ambilight'] = true;
-                        } else { $s['ambilightMode'] = (string)($data['styleName'] ?? ''); }
+                        } else {
+                            $s['ambilightMode'] = (string)($data['styleName'] ?? '');
+                            $s['ambilightAlgorithm'] = (string)($data['menuSetting'] ?? $data['algorithm'] ?? '');
+                        }
                     } catch (Throwable $e) {
                         if ($e->getCode() === 202) { throw $e; }
                         if (in_array($e->getCode(), [404, 405, 501], true)) {
@@ -419,7 +469,7 @@ class PhilipsTV extends IPSModuleStrict
             $this->SetValue('Online', true);
             $this->SetValue('Power', $s['power'] === 'awake');
             $this->SetValue('PowerState', $s['power']);
-            foreach (['Volume' => 'volume', 'Mute' => 'mute', 'Ambilight' => 'ambilight', 'Activity' => 'activity', 'AmbilightMode' => 'ambilightMode'] as $ident => $key) {
+            foreach (['Volume' => 'volume', 'Mute' => 'mute', 'Ambilight' => 'ambilight', 'Activity' => 'activity', 'AmbilightMode' => 'ambilightMode', 'AmbilightAlgorithm' => 'ambilightAlgorithm'] as $ident => $key) {
                 if ($s[$key] !== null) { $this->SetValue($ident, $s[$key]); }
             }
             $this->SetValue('Updated', $s['updated']);
@@ -478,6 +528,18 @@ class PhilipsTV extends IPSModuleStrict
                     if (!is_bool($Value)) { throw new InvalidArgumentException('Ambilight erwartet true oder false.'); }
                     if (!($s['caps']['ambilight'] ?? false) || !$s['online'] || $s['power'] !== 'awake') { throw new RuntimeException('Ambilight derzeit nicht verfügbar.'); }
                     $endpoint = 'ambilight/power'; $body = ['power' => $Value ? 'On' : 'Off']; break;
+                case 'AmbilightStyle':
+                    if (!is_string($Value) || !in_array($Value, array_column($this->AmbilightOptions(), 'value'), true)) {
+                        throw new InvalidArgumentException('Dieser Ambilight-Stil wurde nicht als unterstützt erkannt. Bitte zuerst die Modi einlesen.');
+                    }
+                    if (!$s['online'] || $s['power'] !== 'awake' || !($s['caps']['ambilight'] ?? false)) {
+                        throw new RuntimeException('Ambilight ist derzeit nicht erreichbar.');
+                    }
+                    $parts = explode('|', $Value, 2);
+                    $endpoint = 'ambilight/currentconfiguration';
+                    $body = ['styleName' => $parts[0], 'isExpert' => false];
+                    if (isset($parts[1])) { $body['menuSetting'] = $parts[1]; }
+                    break;
                 case 'RemoteKey':
                     if (!is_string($Value) || !in_array($Value, self::KEYS, true)) { throw new InvalidArgumentException('Unbekannte Fernbedienungstaste.'); }
                     $endpoint = 'input/key'; $body = ['key' => $Value]; break;
