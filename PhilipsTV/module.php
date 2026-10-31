@@ -678,12 +678,12 @@ class PhilipsTV extends IPSModuleStrict
                     $endpoint = 'ambilight/currentconfiguration';
                     $body = ['styleName' => $parts[0], 'isExpert' => false];
                     if (isset($parts[1])) { $body['menuSetting'] = $parts[1]; }
-                    // Read the TV's actual payload before changing the mode. Never copy
-                    // style-specific settings (e.g. stringValue) to a different style.
-                    $currentConfig = $this->Api('GET', 'ambilight/currentconfiguration');
-                    $safeConfig = array_intersect_key($currentConfig, array_flip([
-                        'styleName', 'isExpert', 'menuSetting', 'stringValue', 'algorithm'
-                    ]));
+                    // Use last confirmed snapshot; never block the command with another GET.
+                    $previous = $this->Snapshot();
+                    $safeConfig = [
+                        'styleName' => (string)($previous['ambilightMode'] ?? ''),
+                        'menuSetting' => (string)($previous['ambilightAlgorithm'] ?? '')
+                    ];
                     $this->WriteAttributeString('AmbilightPreviousConfiguration',
                         json_encode($safeConfig, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE));
                     $learned = json_decode($this->ReadAttributeString('AmbilightLearnedConfigurations'), true);
