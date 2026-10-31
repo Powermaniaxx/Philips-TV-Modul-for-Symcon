@@ -255,17 +255,31 @@ class PhilipsTV extends IPSModuleStrict
 
     public function DiscoverAmbilightStyles(): void
     {
-        if ($this->ConfigurationStatus() !== 102 || $this->PairingPending()) { throw new RuntimeException('TV-Verbindung muss aktiv und gekoppelt sein.'); }
-        $s = json_decode($this->GetState(), true, 32, JSON_THROW_ON_ERROR);
-        if (!$s['online'] || $s['power'] !== 'awake') { throw new RuntimeException('Zum Einlesen der Ambilight-Modi muss der Fernseher eingeschaltet und erreichbar sein.'); }
-        $data = $this->Api('GET', 'ambilight/supportedstyles');
-        $styles = $data['supportedStyles'] ?? null;
-        if (!is_array($styles)) { throw new RuntimeException('Der Fernseher hat keine gültige Liste unterstützter Ambilight-Modi geliefert.'); }
-        $valid = array_values(array_filter($styles, fn(mixed $entry): bool => is_array($entry) && is_string($entry['styleName'] ?? null)));
-        $this->WriteAttributeString('AmbilightStyles', json_encode(array_slice($valid, 0, 120), JSON_THROW_ON_ERROR));
-        $this->UpdateFormField('AmbilightChoice', 'options', json_encode($this->AmbilightOptions(), JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE));
-        $this->UpdateAmbilightSelectors();
-        $this->SendDebug('Ambilight-Modi', 'Vom Fernseher gemeldet: ' . count($valid), 0);
+        try {
+            if ($this->ConfigurationStatus() !== 102 || $this->PairingPending()) {
+                throw new RuntimeException('TV-Verbindung muss aktiv und gekoppelt sein.');
+            }
+            $s = json_decode($this->GetState(), true, 32, JSON_THROW_ON_ERROR);
+            if (!$s['online'] || $s['power'] !== 'awake') {
+                throw new RuntimeException('Zum Einlesen der Ambilight-Modi muss der Fernseher eingeschaltet und erreichbar sein.');
+            }
+            $data = $this->Api('GET', 'ambilight/supportedstyles');
+            $styles = $data['supportedStyles'] ?? null;
+            if (!is_array($styles)) {
+                throw new RuntimeException('Der Fernseher hat keine gültige Liste unterstützter Ambilight-Modi geliefert.');
+            }
+            $valid = array_values(array_filter($styles, fn(mixed $entry): bool => is_array($entry) && is_string($entry['styleName'] ?? null)));
+            $this->WriteAttributeString('AmbilightStyles', json_encode(array_slice($valid, 0, 120), JSON_THROW_ON_ERROR));
+            $this->UpdateFormField('AmbilightChoice', 'options', json_encode($this->AmbilightOptions(), JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE));
+            $this->UpdateAmbilightSelectors();
+            $this->SetValue('LastError', '');
+            $this->SendDebug('Ambilight-Modi', 'Vom Fernseher gemeldet: ' . count($valid), 0);
+        } catch (Throwable $e) {
+            // A temporary TLS/connection error must not destroy the last known list.
+            $this->SetValue('LastError', 'Ambilight-Modi konnten nicht eingelesen werden: ' . $e->getMessage());
+            $this->SendDebug('Ambilight-Modi', $this->GetValue('LastError'), 0);
+        }
+        $this->Publish();
     }
 
     /** Save only a complete configuration actually reported by this TV. */
