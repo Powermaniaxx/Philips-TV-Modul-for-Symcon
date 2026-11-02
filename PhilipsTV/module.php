@@ -587,7 +587,11 @@ class PhilipsTV extends IPSModuleStrict
             $s = $this->Snapshot(); $s['power'] = 'unknown'; $s['caps'] = [];
             $this->WriteAttributeString('Snapshot', json_encode($s, JSON_THROW_ON_ERROR));
             $this->SetValue('LastError', $e->getMessage());
-            $this->SetStatus($e->getCode() === 202 ? 202 : 201);
+            // A sleeping TV may close its network interface. Keep diagnostics visible,
+            // but do not mark a correctly configured instance as broken on a
+            // transient transport failure. The polling timer below retries.
+            $temporaryTransportFailure = preg_match('/HTTP 0 · cURL (?:7|28|52|55|56) ·/', $e->getMessage()) === 1;
+            $this->SetStatus($temporaryTransportFailure ? 102 : ($e->getCode() === 202 ? 202 : 201));
         }
         $this->UpdateAmbilightSelectors();
         $this->Publish();
