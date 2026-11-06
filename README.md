@@ -1,6 +1,6 @@
 # Philips TV Steuerung (JointSpace) für IP-Symcon
 
-Eigenständiges Philips-TV-Modul **v1.4.1 für IP-Symcon 9.0 oder neuer**, mit direkter JointSpace-Verbindung über HTTPS/API 6 und Digest-Anmeldung. Keine laufende Python- oder Node-RED-Verbindung erforderlich. Vorhandene Kopplungsdaten können weiterverwendet werden.
+Eigenständiges Philips-TV-Modul **v1.4.2 für IP-Symcon 9.0 oder neuer**, mit direkter JointSpace-Verbindung über HTTPS/API 6 und Digest-Anmeldung. Keine laufende Python- oder Node-RED-Verbindung erforderlich. Vorhandene Kopplungsdaten können weiterverwendet werden.
 
 ## Voraussetzungen und Gerätekompatibilität
 
@@ -33,13 +33,15 @@ Nur vom TV gemeldete Stile und Varianten können gesendet werden. Nach dem Befeh
 
 Die Ambilight-Modi stehen ab Hausstatus v0.138 auch in der Philips-TV-Kachel zur Auswahl. Dort kann die Liste direkt vom TV neu eingelesen werden.
 
+Ab v1.4.2 verwenden **Ambilight-Modus** und **Ambilight-Stilvariante** die Standarddarstellung „Aufzählung“, sobald passende Optionen vorliegen. Eigene Darstellungen bleiben erhalten. Falls eine frühere Modulversion bei diesen Variablen ein benutzerdefiniertes Profil mit dem Präfix `SVPTV.` hinterlegt hat, kannst du über **Auf Standard zurücksetzen** zur neuen Darstellung wechseln.
+
 Alle neuen Git-Commits werden mit der jeweils betroffenen Modulversion im Format `vX.Y.Z: Änderung` beschrieben.
 
 **[Versionshistorie (CHANGELOG)](CHANGELOG.md)** enthält die Änderungen jeder veröffentlichten Repository-Version. Für den Symcon Store muss die Beschreibung der neuesten Version beim Einreichen zusätzlich eingetragen werden.
 
 ## Shield und Cinema 40 gemeinsam steuern (ab v1.4.1)
 
-In der Philips-TV-Instanz **Philips automatisch mit Shield ODER AVR steuern** aktivieren und beide Statusvariablen auswählen. Beispiel aus einer Installation: Shield `16350` mit `awake`/`standby`, Denon Cinema 40 `10950` mit Boolean EIN/AUS. Diese IDs sind Beispiele und werden nicht fest im Modul erzwungen.
+In der Philips-TV-Instanz **Philips automatisch mit Shield ODER AVR steuern** aktivieren und beide Statusvariablen auswählen. Die Shield kann beispielsweise `awake`/`standby` liefern und der AVR einen Boolean für EIN/AUS.
 
 - Wechselt die gemeinsame Quelle von AUS nach EIN, wird einmalig `On` per JointSpace gesendet.
 - Wechselt die gemeinsame Quelle von EIN nach AUS, wird einmalig `Standby` gesendet. Anschließend sind automatische Abfragen vollständig ausgesetzt.

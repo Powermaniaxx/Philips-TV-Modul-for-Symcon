@@ -2,6 +2,10 @@
 
 Änderungen sind anhand der Commits im Repository dokumentiert. Die Versionsinformationen für den Symcon Module Store werden bei einer Veröffentlichung zusätzlich im Store selbst eingetragen.
 
+## 1.4.2 – 06.11.2026
+
+- Ambilight-Modus und Ambilight-Stilvariante verwenden bei verfügbaren Optionen die Symcon-Standarddarstellung „Aufzählung“. Benutzerdefinierte Darstellungen bleiben erhalten.
+
 ## 1.4.1 – 31.10.2026
 - Liste der erkannten Ambilight-Modi wird im Status für die Hausstatus-Visualisierung bereitgestellt.
 - Die Hausstatus-Kachel kann damit die vom TV zurückgemeldeten Modi auswählen und erneut einlesen (Hausstatus ab 0.138).

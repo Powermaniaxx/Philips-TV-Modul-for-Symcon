@@ -2,17 +2,7 @@
 declare(strict_types=1);
 // SDK and TV fixtures: never contact a real device.
 const VM_UPDATE = 10603;
-$profiles = [];
-function IPS_VariableProfileExists(string $name): bool { return isset($GLOBALS['profiles'][$name]); }
-function IPS_CreateVariableProfile(string $name, int $type): void { $GLOBALS['profiles'][$name] = ['ProfileType' => $type, 'Associations' => []]; }
-function IPS_GetVariableProfile(string $name): array { return $GLOBALS['profiles'][$name]; }
-function IPS_SetVariableProfileAssociation(string $name, mixed $value, string $caption, string $icon, int $color): bool {
-    $items = &$GLOBALS['profiles'][$name]['Associations'];
-    $items = array_values(array_filter($items, fn(array $item): bool => $item['Value'] !== $value));
-    if ($caption !== '') { $items[] = ['Value' => $value, 'Name' => $caption]; }
-    return true;
-}
-function IPS_SetVariableCustomProfile(int $id, string $profile): bool { return true; }
+const VARIABLE_PRESENTATION_ENUMERATION = '{52D9E126-D7D2-2CBB-5E62-4CF7BA7C5D82}';
 
 $locks = [];
 $signalValues = [99 => false];
@@ -25,8 +15,8 @@ function IPS_VariableExists(int $id): bool { return in_array($id,[99,16350,10950
 class IPSModuleStrict
 {
     public int $InstanceID = 456;
-    protected function GetIDForIdent(string $ident): int { return 1000 + array_search($ident, array_keys($this->values), true); }
     public array $props = [], $attrs = [], $values = [], $actions = [], $timers = [], $subscriptions = [], $formFields = [];
+    public array $presentations = [];
     public int $status = 0;
     public function Create(): void {}
     public function ApplyChanges(): void {}
@@ -40,7 +30,13 @@ class IPSModuleStrict
     protected function RegisterAttributeInteger(string $n, int $v): void { $this->attrs[$n] = $v; }
     protected function RegisterVariableBoolean(string $n, mixed ...$args): bool { $this->values[$n] = false; return true; }
     protected function RegisterVariableInteger(string $n, mixed ...$args): bool { $this->values[$n] = 0; return true; }
-    protected function RegisterVariableString(string $n, mixed ...$args): bool { $this->values[$n] = ''; return true; }
+    protected function RegisterVariableString(string $n, string $name, array|string $presentation, int $position): bool
+    {
+        $this->presentations[$n] = $presentation;
+        if (array_key_exists($n, $this->values)) { return false; }
+        $this->values[$n] = '';
+        return true;
+    }
     protected function RegisterTimer(string $n, int $v, string $script): void { $this->timers[$n] = $v; }
     protected function SetTimerInterval(string $n, int $v): void { $this->timers[$n] = $v; }
     protected function ReadPropertyBoolean(string $n): bool { return $this->props[$n]; }
